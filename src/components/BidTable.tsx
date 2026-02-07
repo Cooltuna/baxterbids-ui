@@ -6,9 +6,10 @@ import { Bid } from '@/types';
 interface BidTableProps {
   bids: Bid[];
   searchQuery: string;
+  isLoading?: boolean;
 }
 
-export default function BidTable({ bids, searchQuery }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -181,7 +182,22 @@ export default function BidTable({ bids, searchQuery }: BidTableProps) {
         </table>
       </div>
       
-      {filteredBids.length === 0 && (
+      {isLoading && (
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-3/4 skeleton rounded" />
+                <div className="h-3 w-1/2 skeleton rounded" />
+              </div>
+              <div className="h-6 w-20 skeleton rounded" />
+              <div className="h-6 w-24 skeleton rounded" />
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {!isLoading && filteredBids.length === 0 && (
         <div className="text-center py-12">
           <svg className="w-12 h-12 mx-auto text-[var(--muted)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

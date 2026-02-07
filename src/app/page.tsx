@@ -5,114 +5,44 @@ import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import BidTable from '@/components/BidTable';
 import RFQTracker from '@/components/RFQTracker';
-import { Bid, RFQ } from '@/types';
-
-// Demo data - will be replaced with API calls
-const demoBids: Bid[] = [
-  {
-    id: 'MBTA-2024-001',
-    title: 'Vehicle Maintenance Equipment - Heavy Duty Lifts',
-    agency: 'MBTA',
-    closeDate: '2024-02-15',
-    status: 'active',
-    value: '$125,000 - $175,000',
-    category: 'Equipment',
-    url: '#'
-  },
-  {
-    id: 'MBTA-2024-002', 
-    title: 'IT Infrastructure Upgrade - Network Switches',
-    agency: 'MBTA',
-    closeDate: '2024-02-12',
-    status: 'closing-soon',
-    value: '$85,000 - $120,000',
-    category: 'Technology',
-    url: '#'
-  },
-  {
-    id: 'MBTA-2024-003',
-    title: 'Janitorial Services - Bus Maintenance Facility',
-    agency: 'MBTA',
-    closeDate: '2024-02-20',
-    status: 'active',
-    value: '$200,000 - $300,000',
-    category: 'Services',
-    url: '#'
-  },
-  {
-    id: 'MBTA-2024-004',
-    title: 'Safety Equipment - Personal Protective Gear',
-    agency: 'MBTA',
-    closeDate: '2024-02-08',
-    status: 'closing-soon',
-    value: '$45,000 - $65,000',
-    category: 'Equipment',
-    url: '#'
-  },
-  {
-    id: 'MBTA-2024-005',
-    title: 'Electrical Supplies - Wire and Cable',
-    agency: 'MBTA',
-    closeDate: '2024-02-25',
-    status: 'active',
-    value: '$30,000 - $50,000',
-    category: 'Materials',
-    url: '#'
-  },
-];
-
-const demoRFQs: RFQ[] = [
-  {
-    id: 'RFQ-001',
-    bidId: 'MBTA-2024-001',
-    vendor: 'Stertil-Koni USA',
-    status: 'sent',
-    sentDate: '2024-02-05',
-    dueDate: '2024-02-07',
-  },
-  {
-    id: 'RFQ-002',
-    bidId: 'MBTA-2024-001',
-    vendor: 'Rotary Lift',
-    status: 'received',
-    sentDate: '2024-02-05',
-    receivedDate: '2024-02-06',
-    quoteAmount: '$142,500',
-  },
-  {
-    id: 'RFQ-003',
-    bidId: 'MBTA-2024-002',
-    vendor: 'CDW Government',
-    status: 'overdue',
-    sentDate: '2024-02-03',
-    dueDate: '2024-02-05',
-  },
-  {
-    id: 'RFQ-004',
-    bidId: 'MBTA-2024-004',
-    vendor: 'Grainger',
-    status: 'draft',
-  },
-];
+import { useBids, useRFQs, useStats } from '@/hooks/useData';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'bids' | 'rfqs'>('bids');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const { bids, isLoading: bidsLoading, timestamp: bidsTimestamp, refresh: refreshBids } = useBids();
+  const { rfqs, isLoading: rfqsLoading, refresh: refreshRFQs } = useRFQs();
+  const stats = useStats();
 
-  const stats = {
-    totalBids: demoBids.length,
-    closingSoon: demoBids.filter(b => b.status === 'closing-soon').length,
-    rfqsSent: demoRFQs.filter(r => r.status === 'sent').length,
-    rfqsOverdue: demoRFQs.filter(r => r.status === 'overdue').length,
+  const handleRefresh = () => {
+    refreshBids();
+    refreshRFQs();
+  };
+
+  const formatTimestamp = (ts?: string) => {
+    if (!ts) return 'Never';
+    const date = new Date(ts);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    
+    if (diffSecs < 60) return `${diffSecs}s ago`;
+    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
+    return date.toLocaleTimeString();
   };
 
   return (
     <div className="min-h-screen">
-      <Header />
+      <Header 
+        onRefresh={handleRefresh} 
+        lastSync={formatTimestamp(bidsTimestamp)}
+        isLoading={bidsLoading || rfqsLoading}
+      />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} isLoading={bidsLoading || rfqsLoading} />
 
         {/* Tab Navigation */}
         <div className="mt-8 flex items-center gap-4 border-b border-[var(--border)]">
@@ -125,6 +55,7 @@ export default function Home() {
             }`}
           >
             Active Bids
+            <span className="ml-2 text-xs text-[var(--muted)]">({bids.length})</span>
             {activeTab === 'bids' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full" />
             )}
@@ -173,9 +104,9 @@ export default function Home() {
         {/* Content */}
         <div className="mt-6">
           {activeTab === 'bids' ? (
-            <BidTable bids={demoBids} searchQuery={searchQuery} />
+            <BidTable bids={bids} searchQuery={searchQuery} isLoading={bidsLoading} />
           ) : (
-            <RFQTracker rfqs={demoRFQs} searchQuery={searchQuery} />
+            <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />
           )}
         </div>
       </main>

@@ -4,9 +4,10 @@ import { Stats } from '@/types';
 
 interface StatsCardsProps {
   stats: Stats;
+  isLoading?: boolean;
 }
 
-export default function StatsCards({ stats }: StatsCardsProps) {
+export default function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
   const cards = [
     {
       label: 'Active Bids',
@@ -76,9 +77,13 @@ export default function StatsCards({ stats }: StatsCardsProps) {
           <div className="relative flex items-start justify-between">
             <div>
               <p className="text-sm text-[var(--muted)] font-medium">{card.label}</p>
-              <p className={`text-4xl font-bold mt-2 ${card.textColor}`}>
-                {card.value}
-              </p>
+              {isLoading ? (
+                <div className="h-10 w-16 mt-2 skeleton rounded" />
+              ) : (
+                <p className={`text-4xl font-bold mt-2 ${card.textColor}`}>
+                  {card.value}
+                </p>
+              )}
               {card.subtitle && (
                 <p className="text-xs text-[var(--muted)] mt-1">{card.subtitle}</p>
               )}

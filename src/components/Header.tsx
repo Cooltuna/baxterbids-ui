@@ -1,6 +1,12 @@
 'use client';
 
-export default function Header() {
+interface HeaderProps {
+  onRefresh?: () => void;
+  lastSync?: string;
+  isLoading?: boolean;
+}
+
+export default function Header({ onRefresh, lastSync = 'Never', isLoading = false }: HeaderProps) {
   return (
     <header className="glass sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,16 +50,29 @@ export default function Header() {
 
             {/* Sync Status */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-              <span className="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse"></span>
-              <span className="text-xs text-[var(--muted)]">Synced 2m ago</span>
+              <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-[var(--success)]'}`}></span>
+              <span className="text-xs text-[var(--muted)]">
+                {isLoading ? 'Syncing...' : `Synced ${lastSync}`}
+              </span>
             </div>
 
             {/* Refresh Button */}
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-black font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-[var(--accent)]/20">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button 
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-black font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-[var(--accent)]/20"
+            >
+              <svg 
+                className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              <span className="hidden sm:inline text-sm">Refresh</span>
+              <span className="hidden sm:inline text-sm">
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </span>
             </button>
           </div>
         </div>

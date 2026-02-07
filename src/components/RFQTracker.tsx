@@ -5,9 +5,31 @@ import { RFQ } from '@/types';
 interface RFQTrackerProps {
   rfqs: RFQ[];
   searchQuery: string;
+  isLoading?: boolean;
 }
 
-export default function RFQTracker({ rfqs, searchQuery }: RFQTrackerProps) {
+export default function RFQTracker({ rfqs, searchQuery, isLoading = false }: RFQTrackerProps) {
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 skeleton rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 skeleton rounded" />
+                  <div className="h-3 w-1/2 skeleton rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const filteredRFQs = rfqs.filter(rfq =>
     rfq.vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
     rfq.bidId.toLowerCase().includes(searchQuery.toLowerCase())
