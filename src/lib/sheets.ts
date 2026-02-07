@@ -4,8 +4,6 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1_WEPcLcnBB0u0r9HLpnzDVhsKVakx4
 
 // Initialize Google Sheets API with service account
 function getSheets() {
-  // For local dev, use service account JSON file
-  // For Vercel, use GOOGLE_SERVICE_ACCOUNT env var (base64 encoded)
   let auth;
   
   if (process.env.GOOGLE_SERVICE_ACCOUNT) {
@@ -18,7 +16,7 @@ function getSheets() {
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
   } else {
-    // Local development - use default credentials or API key
+    // Local development - use default credentials
     auth = new google.auth.GoogleAuth({
       keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
@@ -55,31 +53,34 @@ export async function fetchBids(): Promise<SheetBid[]> {
     const sheets = getSheets();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Active Bids!A2:H100', // Skip header row
+      range: 'Active Bids!A2:K100', // Skip header row
     });
 
     const rows = response.data.values || [];
     const today = new Date();
     
+    // Columns: A=Source, B=Bid ID, C=Title, D=Status, E=Close Date, F=Days Left, G=Category, H=Est Value, I=Priority, J=Notes, K=Detail URL
     return rows.map((row) => {
-      const closeDate = row[3] || '';
-      const daysUntilClose = closeDate 
-        ? Math.ceil((new Date(closeDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        : 999;
+      const closeDate = row[4] || ''; // Column E
+      const daysLeft = parseInt(row[5]) || 0; // Column F
       
       let status: 'active' | 'closing-soon' | 'closed' = 'active';
-      if (daysUntilClose <= 0) status = 'closed';
-      else if (daysUntilClose <= 3) status = 'closing-soon';
+      const sheetStatus = (row[3] || '').toLowerCase(); // Column D
+      if (sheetStatus === 'closed' || daysLeft <= 0) {
+        status = 'closed';
+      } else if (daysLeft <= 3) {
+        status = 'closing-soon';
+      }
 
       return {
-        id: row[0] || '',
-        title: row[1] || '',
-        agency: row[2] || 'MBTA',
+        id: row[1] || '',           // Column B - Bid ID
+        title: row[2] || '',        // Column C - Title
+        agency: row[0] || 'MBTA',   // Column A - Source (use as agency)
         closeDate: closeDate,
         status,
-        value: row[4] || '',
-        category: row[5] || 'General',
-        url: row[6] || '#',
+        value: row[7] || '',        // Column H - Est. Value
+        category: row[6] || '',     // Column G - Category
+        url: row[10] || '#',        // Column K - Detail URL
       };
     }).filter(bid => bid.id); // Filter out empty rows
   } catch (error) {
@@ -99,28 +100,31 @@ export async function fetchRFQs(): Promise<SheetRFQ[]> {
     const rows = response.data.values || [];
     const today = new Date();
     
+    // Adjust columns based on your RFQ Log structure
+    // Assuming: A=RFQ ID, B=Bid ID, C=Vendor, D=Status, E=Sent Date, F=Due Date, G=Received Date, H=Quote Amount, I=Notes
     return rows.map((row) => {
       const sentDate = row[4] || '';
       const receivedDate = row[6] || '';
-      let status: 'draft' | 'sent' | 'received' | 'overdue' = row[3]?.toLowerCase() || 'draft';
+      let status: 'draft' | 'sent' | 'received' | 'overdue' = (row[3] || 'draft').toLowerCase() as any;
       
       // Auto-calculate overdue status
       if (status === 'sent' && sentDate && !receivedDate) {
+        const sentDateTime = new Date(sentDate);
         const daysSinceSent = Math.floor(
-          (today.getTime() - new Date(sentDate).getTime()) / (1000 * 60 * 60 * 24)
+          (today.getTime() - sentDateTime.getTime()) / (1000 * 60 * 60 * 24)
         );
         if (daysSinceSent > 2) status = 'overdue';
       }
 
       return {
-        id: row[0] || '',
-        bidId: row[1] || '',
-        vendor: row[2] || '',
+        id: row[0] || '',           // Column A - RFQ ID
+        bidId: row[1] || '',        // Column B - Bid ID
+        vendor: row[2] || '',       // Column C - Vendor
         status,
         sentDate,
-        dueDate: row[5] || '',
+        dueDate: row[5] || '',      // Column F - Due Date
         receivedDate,
-        quoteAmount: row[7] || '',
+        quoteAmount: row[7] || '',  // Column H - Quote Amount
       };
     }).filter(rfq => rfq.id); // Filter out empty rows
   } catch (error) {
