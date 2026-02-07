@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BaxterBids | Government Bid Discovery",
-  description: "Real-time government procurement opportunity tracking",
+  title: "Fairmarkit Bid Portal",
+  description: "Real-time MBTA procurement opportunity tracking",
 };
 
 export default function RootLayout({

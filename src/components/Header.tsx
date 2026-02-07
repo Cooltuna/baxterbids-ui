@@ -17,8 +17,8 @@ export default function Header({ onRefresh, lastSync = 'Never', isLoading = fals
               <span className="text-xl">🦡</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text">BaxterBids</h1>
-              <p className="text-xs text-[var(--muted)]">Government Bid Discovery</p>
+              <h1 className="text-xl font-bold gradient-text">Fairmarkit Bid Portal</h1>
+              <p className="text-xs text-[var(--muted)]">MBTA Procurement</p>
             </div>
           </div>
 
