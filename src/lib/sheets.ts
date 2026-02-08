@@ -60,29 +60,35 @@ export async function fetchBids(): Promise<SheetBid[]> {
     const today = new Date();
     
     // Columns: A=Source, B=Bid ID, C=Title, D=Status, E=Close Date, F=Days Left, G=Category, H=Est Value, I=Priority, J=Notes, K=Detail URL
-    return rows.map((row) => {
-      const closeDate = row[4] || ''; // Column E
-      const daysLeft = parseInt(row[5]) || 0; // Column F
-      
-      let status: 'active' | 'closing-soon' | 'closed' = 'active';
-      const sheetStatus = (row[3] || '').toLowerCase(); // Column D
-      if (sheetStatus === 'closed' || daysLeft <= 0) {
-        status = 'closed';
-      } else if (daysLeft <= 3) {
-        status = 'closing-soon';
-      }
+    return rows
+      .filter(row => {
+        // Skip "No Bid" items
+        const sheetStatus = (row[3] || '').toLowerCase();
+        return sheetStatus !== 'no bid' && row[1]; // Must have bid ID and not be "No Bid"
+      })
+      .map((row) => {
+        const closeDate = row[4] || ''; // Column E
+        const daysLeft = parseInt(row[5]) || 0; // Column F
+        
+        let status: 'active' | 'closing-soon' | 'closed' = 'active';
+        const sheetStatus = (row[3] || '').toLowerCase(); // Column D
+        if (sheetStatus === 'closed' || daysLeft <= 0) {
+          status = 'closed';
+        } else if (daysLeft <= 3) {
+          status = 'closing-soon';
+        }
 
-      return {
-        id: row[1] || '',           // Column B - Bid ID
-        title: row[2] || '',        // Column C - Title
-        agency: row[0] || 'MBTA',   // Column A - Source (use as agency)
-        closeDate: closeDate,
-        status,
-        value: row[7] || '',        // Column H - Est. Value
-        category: row[6] || '',     // Column G - Category
-        url: row[10] || '#',        // Column K - Detail URL
-      };
-    }).filter(bid => bid.id); // Filter out empty rows
+        return {
+          id: row[1] || '',           // Column B - Bid ID
+          title: row[2] || '',        // Column C - Title
+          agency: row[0] || 'MBTA',   // Column A - Source (use as agency)
+          closeDate: closeDate,
+          status,
+          value: row[7] || '',        // Column H - Est. Value
+          category: row[6] || '',     // Column G - Category
+          url: row[10] || '#',        // Column K - Detail URL
+        };
+      });
   } catch (error) {
     console.error('Error fetching bids:', error);
     throw error;
