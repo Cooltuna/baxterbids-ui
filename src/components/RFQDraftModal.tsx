@@ -34,6 +34,7 @@ export default function RFQDraftModal({
   const [isPreview, setIsPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Generate draft when modal opens
   useEffect(() => {
@@ -62,6 +63,18 @@ export default function RFQDraftModal({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCopyToClipboard = async () => {
+    const fullEmail = `To: ${vendorEmail}\nSubject: ${subject}\n\n${body}`;
+    await navigator.clipboard.writeText(fullEmail);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleOpenInEmail = () => {
+    const mailtoLink = `mailto:${encodeURIComponent(vendorEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink, '_blank');
   };
 
   const handleSend = async () => {
@@ -260,6 +273,21 @@ export default function RFQDraftModal({
                     ← Edit
                   </button>
                   <button
+                    onClick={handleCopyToClipboard}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
+                  >
+                    {copied ? '✓ Copied!' : '📋 Copy'}
+                  </button>
+                  <button
+                    onClick={handleOpenInEmail}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Open in Email
+                  </button>
+                  <button
                     onClick={handleSend}
                     disabled={isSending || !vendorEmail}
                     className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--success)] text-white hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
@@ -277,7 +305,7 @@ export default function RFQDraftModal({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
-                        Send RFQ
+                        Send Direct
                       </>
                     )}
                   </button>
