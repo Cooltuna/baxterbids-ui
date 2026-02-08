@@ -62,6 +62,7 @@ export interface Vendor {
   contact?: string;
   products: string[];
   notes?: string;
+  can_supply?: number[];  // Item numbers this vendor can supply
 }
 
 export interface VendorSearchResult {

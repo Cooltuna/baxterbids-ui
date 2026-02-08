@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bid, BidSummary, LineItem } from '@/types';
+import { Bid, BidSummary, LineItem, Vendor } from '@/types';
 import { analyzeBid, batchSearchVendors, checkApiHealth, VendorMatrixResult } from '@/lib/api';
+import RFQDraftModal from './RFQDraftModal';
 
 interface BidDetailModalProps {
   bid: Bid | null;
@@ -22,6 +23,8 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
   const [showPasteBom, setShowPasteBom] = useState(false);
   const [bomText, setBomText] = useState('');
+  const [rfqVendor, setRfqVendor] = useState<Vendor | null>(null);
+  const [rfqItems, setRfqItems] = useState<LineItem[]>([]);
 
   // Check API availability on mount
   useEffect(() => {
@@ -112,6 +115,19 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
     } finally {
       setIsSearchingVendors(false);
     }
+  };
+
+  const handleDraftRFQ = (vendor: Vendor & { can_supply?: number[] }) => {
+    // Get the items this vendor can supply
+    if (vendorMatrix && vendor.can_supply) {
+      const vendorItems = vendor.can_supply.map(num => vendorMatrix.items[num - 1]).filter(Boolean);
+      setRfqItems(vendorItems as LineItem[]);
+    } else if (summary) {
+      // If no vendor matrix, use selected items
+      const items = Array.from(selectedItems).map(i => summary.line_items[i]);
+      setRfqItems(items);
+    }
+    setRfqVendor(vendor);
   };
 
   const exportBOM = () => {
@@ -630,7 +646,16 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                                   </a>
                                 )}
                               </div>
-                              <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors">
+                              <button 
+                                onClick={() => handleDraftRFQ({
+                                  name: vendor.name,
+                                  website: vendor.website,
+                                  contact: vendor.contact,
+                                  products: [],
+                                  can_supply: vendor.can_supply
+                                } as Vendor & { can_supply: number[] })}
+                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                              >
                                 Draft RFQ
                               </button>
                             </div>
@@ -700,6 +725,25 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
           </div>
         </div>
       </div>
+
+      {/* RFQ Draft Modal */}
+      {rfqVendor && summary && (
+        <RFQDraftModal
+          isOpen={!!rfqVendor}
+          onClose={() => {
+            setRfqVendor(null);
+            setRfqItems([]);
+          }}
+          bidId={bid.id}
+          bidTitle={summary.title || bid.title}
+          vendor={rfqVendor}
+          items={rfqItems}
+          deadline={summary.deadline || bid.closeDate}
+          onSent={() => {
+            // Could refresh RFQ list here
+          }}
+        />
+      )}
     </div>
   );
 }
