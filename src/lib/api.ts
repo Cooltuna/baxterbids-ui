@@ -96,6 +96,39 @@ export async function searchVendors(
 }
 
 /**
+ * Batch search for vendors for multiple items
+ */
+export interface VendorMatrixResult {
+  vendors: Array<{
+    name: string;
+    website?: string;
+    contact?: string;
+    can_supply: number[];
+    notes?: string;
+  }>;
+  matrix: Record<string, number[]>;
+  item_coverage: Record<string, string[]>;
+  recommendations: string[];
+  items: Array<{ description: string; quantity?: string; specifications?: string }>;
+  searched_at: string;
+  item_count: number;
+  vendor_count: number;
+}
+
+export async function batchSearchVendors(
+  items: Array<{ description: string; quantity?: string; specifications?: string }>,
+  location?: string
+): Promise<VendorMatrixResult> {
+  return fetchApi<VendorMatrixResult>('/vendors/search/batch', {
+    method: 'POST',
+    body: JSON.stringify({
+      items,
+      location,
+    }),
+  });
+}
+
+/**
  * Generate an RFQ draft
  */
 export async function draftRFQ(
