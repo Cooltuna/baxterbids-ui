@@ -27,7 +27,8 @@ export default function RFQDraftModal({
 }: RFQDraftModalProps) {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [vendorEmail, setVendorEmail] = useState(vendor.contact || '');
+  // Default to test email if no vendor contact
+  const [vendorEmail, setVendorEmail] = useState(vendor.contact || '65baxter@gmail.com');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
@@ -66,6 +67,12 @@ export default function RFQDraftModal({
   const handleSend = async () => {
     if (!vendorEmail) {
       setError('Please enter a vendor email address');
+      return;
+    }
+    
+    // Basic email validation
+    if (!vendorEmail.includes('@') || !vendorEmail.includes('.')) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -192,15 +199,18 @@ export default function RFQDraftModal({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-                    Vendor Email *
+                    Send To (Email) *
                   </label>
                   <input
                     type="email"
                     value={vendorEmail}
                     onChange={(e) => setVendorEmail(e.target.value)}
                     placeholder="vendor@example.com"
-                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)]"
+                    className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)] font-medium"
                   />
+                  <p className="text-xs text-[var(--muted)] mt-1">
+                    Email will be sent from 65baxter@gmail.com
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
