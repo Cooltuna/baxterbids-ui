@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import BidTable from '@/components/BidTable';
@@ -8,6 +8,7 @@ import RFQTracker from '@/components/RFQTracker';
 import BidDetailModal from '@/components/BidDetailModal';
 import { useBids, useRFQs, useStats } from '@/hooks/useData';
 import { Bid } from '@/types';
+import { getRFQSummary, RFQSummary } from '@/lib/api';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'bids' | 'rfqs'>('bids');
@@ -17,6 +18,20 @@ export default function Home() {
   const { bids, isLoading: bidsLoading, timestamp: bidsTimestamp, refresh: refreshBids } = useBids();
   const { rfqs, isLoading: rfqsLoading, refresh: refreshRFQs } = useRFQs();
   const stats = useStats();
+  const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
+
+  // Fetch RFQ summary for dashboard badges
+  useEffect(() => {
+    const fetchSummary = async () => {
+      const summary = await getRFQSummary();
+      setRfqSummary(summary);
+    };
+    fetchSummary();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchSummary, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRefresh = () => {
     refreshBids();
@@ -113,6 +128,7 @@ export default function Home() {
               isLoading={bidsLoading}
               onSelectBid={setSelectedBid}
               onBidUpdated={refreshBids}
+              rfqSummary={rfqSummary}
             />
           ) : (
             <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />

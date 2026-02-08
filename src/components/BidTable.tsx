@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bid } from '@/types';
-import { updateBidStatus } from '@/lib/api';
+import { updateBidStatus, RFQSummary } from '@/lib/api';
 
 interface BidTableProps {
   bids: Bid[];
@@ -10,9 +10,10 @@ interface BidTableProps {
   isLoading?: boolean;
   onSelectBid?: (bid: Bid) => void;
   onBidUpdated?: () => void;
+  rfqSummary?: RFQSummary;
 }
 
-export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated, rfqSummary = {} }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
@@ -140,6 +141,9 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
               <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                 Status
               </th>
+              <th className="text-center px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                RFQs
+              </th>
               <th className="text-right px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                 Actions
               </th>
@@ -187,6 +191,26 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                   </td>
                   <td className="px-6 py-4">
                     {getStatusBadge(bid.status)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {(() => {
+                      const summary = rfqSummary[bid.id];
+                      if (!summary || summary.sent === 0) {
+                        return <span className="text-[var(--muted)] text-sm">—</span>;
+                      }
+                      return (
+                        <div className="flex items-center justify-center gap-2 text-sm">
+                          <span className="flex items-center gap-1 text-[var(--warning)]" title="RFQs Sent">
+                            {summary.sent}📤
+                          </span>
+                          {summary.responded > 0 && (
+                            <span className="flex items-center gap-1 text-[var(--success)]" title="Responses Received">
+                              {summary.responded}📥
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">

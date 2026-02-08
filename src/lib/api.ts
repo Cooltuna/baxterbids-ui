@@ -220,4 +220,22 @@ export async function getBidRFQs(bidId: string): Promise<{ bid_id: string; count
   return fetchApi(`/bids/${encodeURIComponent(bidId)}/rfqs`);
 }
 
+/**
+ * Get RFQ summary counts for all bids (for dashboard badges)
+ */
+export interface RFQSummary {
+  [bidId: string]: {
+    sent: number;
+    responded: number;
+  };
+}
+
+export async function getRFQSummary(): Promise<RFQSummary> {
+  try {
+    return await fetchApi<RFQSummary>('/rfqs/summary');
+  } catch {
+    return {};
+  }
+}
+
 export { ApiError };
