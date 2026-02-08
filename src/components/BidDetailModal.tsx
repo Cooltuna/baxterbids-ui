@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bid, BidSummary, LineItem, Vendor } from '@/types';
-import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, VendorMatrixResult } from '@/lib/api';
+import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, getBidRFQs, VendorMatrixResult, RFQRecord } from '@/lib/api';
 import RFQDraftModal from './RFQDraftModal';
 
 interface BidDetailModalProps {
@@ -27,11 +27,28 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [rfqItems, setRfqItems] = useState<LineItem[]>([]);
   const [isFromCache, setIsFromCache] = useState(false);
   const [isLoadingCache, setIsLoadingCache] = useState(false);
+  const [sentRFQs, setSentRFQs] = useState<RFQRecord[]>([]);
+  const [isLoadingRFQs, setIsLoadingRFQs] = useState(false);
 
   // Check API availability on mount
   useEffect(() => {
     checkApiHealth().then(setApiAvailable);
   }, []);
+
+  // Load sent RFQs for this bid
+  const loadRFQs = async () => {
+    if (!bid) return;
+    setIsLoadingRFQs(true);
+    try {
+      const data = await getBidRFQs(bid.id);
+      setSentRFQs(data.rfqs || []);
+    } catch (err) {
+      console.log('No RFQs found for bid');
+      setSentRFQs([]);
+    } finally {
+      setIsLoadingRFQs(false);
+    }
+  };
 
   // Reset state and load cached data when bid changes
   useEffect(() => {
@@ -45,6 +62,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
       setShowPasteBom(false);
       setBomText('');
       setIsFromCache(false);
+      setSentRFQs([]);
       
       // Try to load cached data
       const loadCachedData = async () => {
@@ -238,7 +256,13 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
             {(['summary', 'bom', 'vendors', 'rfq'] as Tab[]).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  setActiveTab(tab);
+                  // Load RFQs when switching to RFQ tab
+                  if (tab === 'rfq') {
+                    loadRFQs();
+                  }
+                }}
                 disabled={tab !== 'summary' && !summary}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   activeTab === tab
@@ -249,7 +273,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                 {tab === 'summary' && '📋 Summary'}
                 {tab === 'bom' && `📦 BOM ${summary ? `(${summary.line_items.length})` : ''}`}
                 {tab === 'vendors' && '🏢 Vendors'}
-                {tab === 'rfq' && '📝 RFQ'}
+                {tab === 'rfq' && `📝 RFQ ${sentRFQs.length > 0 ? `(${sentRFQs.length})` : ''}`}
               </button>
             ))}
           </div>
@@ -729,52 +753,99 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
 
             {/* RFQ Tab */}
             {activeTab === 'rfq' && (
-              <div>
-                {!vendorMatrix ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
-                      <svg className="w-8 h-8 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
-                      RFQ Generator
-                    </h3>
-                    <p className="text-[var(--muted)] mb-4">
-                      Research vendors first, then generate RFQs from the vendor matrix.
-                    </p>
+              <div className="space-y-6">
+                {/* Sent RFQs Log */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">
+                      📬 RFQ History
+                    </h4>
                     <button
-                      onClick={() => setActiveTab('vendors')}
-                      className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors"
+                      onClick={loadRFQs}
+                      disabled={isLoadingRFQs}
+                      className="text-xs text-[var(--accent)] hover:underline"
                     >
-                      Go to Vendors Tab
+                      {isLoadingRFQs ? 'Loading...' : 'Refresh'}
                     </button>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="p-4 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/30">
-                      <h4 className="font-semibold text-[var(--accent)] mb-2">📝 How to Generate RFQs</h4>
-                      <ol className="text-sm space-y-2 text-[var(--foreground)]">
-                        <li>1. Go to the <strong>Vendors</strong> tab</li>
-                        <li>2. Find a vendor you want to request quotes from</li>
-                        <li>3. Click the <strong>&quot;Draft RFQ&quot;</strong> button next to their name</li>
-                        <li>4. AI will generate a professional email based on the items they can supply</li>
-                        <li>5. Review, edit, and send!</li>
-                      </ol>
+                  
+                  {sentRFQs.length === 0 ? (
+                    <div className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)] text-center">
+                      <p className="text-[var(--muted)]">No RFQs sent yet for this bid</p>
                     </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {sentRFQs.map((rfq) => (
+                        <div 
+                          key={rfq.id}
+                          className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)]"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-[var(--foreground)]">{rfq.vendor_name}</p>
+                                <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                  rfq.status === 'sent' 
+                                    ? 'bg-[var(--warning)]/20 text-[var(--warning)]'
+                                    : rfq.status === 'responded'
+                                    ? 'bg-[var(--success)]/20 text-[var(--success)]'
+                                    : rfq.status === 'won'
+                                    ? 'bg-[var(--accent)]/20 text-[var(--accent)]'
+                                    : 'bg-[var(--muted)]/20 text-[var(--muted)]'
+                                }`}>
+                                  {rfq.status === 'sent' ? '📤 Sent' : 
+                                   rfq.status === 'responded' ? '📥 Responded' :
+                                   rfq.status === 'won' ? '🏆 Won' :
+                                   rfq.status === 'lost' ? '❌ Lost' : rfq.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-[var(--muted)] mt-1">{rfq.vendor_email}</p>
+                              <p className="text-xs text-[var(--muted)] mt-1">
+                                Sent: {new Date(rfq.sent_at).toLocaleString()}
+                              </p>
+                              {rfq.quoted_total && (
+                                <p className="text-sm text-[var(--success)] mt-1">
+                                  Quote: ${rfq.quoted_total.toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-[var(--muted)]">
+                                {JSON.parse(rfq.items_json || '[]').length} items
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                    <div>
-                      <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">
-                        Quick RFQ - Select a Vendor
-                      </h4>
-                      <div className="grid gap-3">
-                        {vendorMatrix.vendors.map((vendor, idx) => (
+                {/* Quick RFQ Section */}
+                {vendorMatrix && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">
+                      ➕ Send New RFQ
+                    </h4>
+                    <div className="grid gap-3">
+                      {vendorMatrix.vendors.map((vendor, idx) => {
+                        const alreadySent = sentRFQs.some(r => r.vendor_name === vendor.name);
+                        return (
                           <div 
                             key={idx} 
-                            className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-between"
+                            className={`p-4 rounded-lg border flex items-center justify-between ${
+                              alreadySent 
+                                ? 'bg-[var(--success)]/5 border-[var(--success)]/30'
+                                : 'bg-[var(--card)] border-[var(--border)]'
+                            }`}
                           >
                             <div>
-                              <p className="font-medium text-[var(--foreground)]">{vendor.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-[var(--foreground)]">{vendor.name}</p>
+                                {alreadySent && (
+                                  <span className="text-xs text-[var(--success)]">✓ RFQ Sent</span>
+                                )}
+                              </div>
                               <p className="text-sm text-[var(--muted)]">
                                 Can supply {vendor.can_supply.length} of {vendorMatrix.items.length} items
                               </p>
@@ -787,14 +858,32 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                                 products: [],
                                 can_supply: vendor.can_supply
                               } as Vendor & { can_supply: number[] })}
-                              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                alreadySent
+                                  ? 'bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background)]'
+                                  : 'bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90'
+                              }`}
                             >
-                              Draft RFQ
+                              {alreadySent ? 'Send Again' : 'Draft RFQ'}
                             </button>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
+                  </div>
+                )}
+
+                {!vendorMatrix && (
+                  <div className="text-center py-8">
+                    <p className="text-[var(--muted)] mb-4">
+                      Research vendors first to send RFQs
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('vendors')}
+                      className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors"
+                    >
+                      Go to Vendors Tab
+                    </button>
                   </div>
                 )}
               </div>
@@ -858,7 +947,9 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
           items={rfqItems}
           deadline={summary.deadline || bid.closeDate}
           onSent={() => {
-            // Could refresh RFQ list here
+            // Refresh RFQ list and switch to RFQ tab
+            loadRFQs();
+            setActiveTab('rfq');
           }}
         />
       )}

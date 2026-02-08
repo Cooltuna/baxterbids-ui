@@ -197,4 +197,27 @@ export async function updateBidStatus(
   });
 }
 
+/**
+ * Get RFQs for a specific bid
+ */
+export interface RFQRecord {
+  id: number;
+  bid_id: string;
+  vendor_id: number;
+  vendor_name: string;
+  vendor_website?: string;
+  vendor_email?: string;
+  subject: string;
+  items_json: string;
+  sent_at: string;
+  response_received_at?: string;
+  quoted_total?: number;
+  status: 'sent' | 'responded' | 'won' | 'lost' | 'no_response';
+  notes?: string;
+}
+
+export async function getBidRFQs(bidId: string): Promise<{ bid_id: string; count: number; rfqs: RFQRecord[] }> {
+  return fetchApi(`/bids/${encodeURIComponent(bidId)}/rfqs`);
+}
+
 export { ApiError };
