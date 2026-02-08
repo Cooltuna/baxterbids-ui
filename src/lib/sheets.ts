@@ -35,6 +35,7 @@ export interface SheetBid {
   value?: string;
   category?: string;
   url: string;
+  sheetStatus?: string;
 }
 
 export interface SheetRFQ {
@@ -87,6 +88,7 @@ export async function fetchBids(): Promise<SheetBid[]> {
           value: row[7] || '',        // Column H - Est. Value
           category: row[6] || '',     // Column G - Category
           url: row[10] || '#',        // Column K - Detail URL
+          sheetStatus: row[3] || 'Open',  // Column D - Status from sheet
         };
       });
   } catch (error) {

@@ -7,6 +7,8 @@ export interface Bid {
   value?: string;
   category?: string;
   url: string;
+  sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'No Bid';
+  isAnalyzed?: boolean;
 }
 
 export interface RFQ {

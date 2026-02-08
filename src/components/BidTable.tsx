@@ -37,6 +37,24 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     }
   };
 
+  const handleInterested = async (bid: Bid, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updatingBid) return;
+    
+    setUpdatingBid(bid.id);
+    try {
+      // Toggle: if already Interested, set back to Open
+      const newStatus = bid.sheetStatus === 'Interested' ? 'Open' : 'Interested';
+      await updateBidStatus(bid.id, newStatus);
+      onBidUpdated?.();
+    } catch (error) {
+      console.error('Failed to update bid:', error);
+      alert('Failed to update bid status. Is the API server running?');
+    } finally {
+      setUpdatingBid(null);
+    }
+  };
+
   const filteredBids = bids
     .filter(bid => 
       bid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,7 +189,30 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                     {getStatusBadge(bid.status)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
+                      {/* Interested Toggle */}
+                      <button 
+                        onClick={(e) => handleInterested(bid, e)}
+                        disabled={updatingBid === bid.id}
+                        className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
+                          bid.sheetStatus === 'Interested'
+                            ? 'bg-[var(--success)]/20 text-[var(--success)]'
+                            : 'hover:bg-[var(--success)]/10 text-[var(--muted)] hover:text-[var(--success)]'
+                        }`}
+                        title={bid.sheetStatus === 'Interested' ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
+                      >
+                        {updatingBid === bid.id ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                      {/* Analyze */}
                       <button 
                         onClick={() => onSelectBid?.(bid)}
                         className="p-2 rounded-lg hover:bg-[var(--accent)]/10 text-[var(--muted)] hover:text-[var(--accent)] transition-all"
@@ -181,23 +222,18 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       </button>
+                      {/* No Bid */}
                       <button 
                         onClick={(e) => handleNoBid(bid, e)}
                         disabled={updatingBid === bid.id}
                         className="p-2 rounded-lg hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-all disabled:opacity-50"
                         title="No Bid"
                       >
-                        {updatingBid === bid.id ? (
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                          </svg>
-                        )}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
+                      {/* External Link */}
                       <a 
                         href={bid.url}
                         target="_blank"
