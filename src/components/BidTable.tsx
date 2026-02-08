@@ -7,9 +7,10 @@ interface BidTableProps {
   bids: Bid[];
   searchQuery: string;
   isLoading?: boolean;
+  onSelectBid?: (bid: Bid) => void;
 }
 
-export default function BidTable({ bids, searchQuery, isLoading = false }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -114,9 +115,12 @@ export default function BidTable({ bids, searchQuery, isLoading = false }: BidTa
                 >
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-[var(--foreground)] hover:text-[var(--accent)] transition-colors cursor-pointer">
+                      <button
+                        onClick={() => onSelectBid?.(bid)}
+                        className="text-left font-medium text-[var(--foreground)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+                      >
                         {bid.title}
-                      </p>
+                      </button>
                       <p className="text-sm text-[var(--muted)] mt-1">
                         {bid.id} &middot; {bid.agency}
                       </p>
@@ -146,12 +150,12 @@ export default function BidTable({ bids, searchQuery, isLoading = false }: BidTa
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
+                        onClick={() => onSelectBid?.(bid)}
                         className="p-2 rounded-lg hover:bg-[var(--accent)]/10 text-[var(--muted)] hover:text-[var(--accent)] transition-all"
-                        title="View Details"
+                        title="Analyze Bid"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       </button>
                       <button 

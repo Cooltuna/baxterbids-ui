@@ -5,11 +5,14 @@ import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import BidTable from '@/components/BidTable';
 import RFQTracker from '@/components/RFQTracker';
+import BidDetailModal from '@/components/BidDetailModal';
 import { useBids, useRFQs, useStats } from '@/hooks/useData';
+import { Bid } from '@/types';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'bids' | 'rfqs'>('bids');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
   
   const { bids, isLoading: bidsLoading, timestamp: bidsTimestamp, refresh: refreshBids } = useBids();
   const { rfqs, isLoading: rfqsLoading, refresh: refreshRFQs } = useRFQs();
@@ -104,7 +107,12 @@ export default function Home() {
         {/* Content */}
         <div className="mt-6">
           {activeTab === 'bids' ? (
-            <BidTable bids={bids} searchQuery={searchQuery} isLoading={bidsLoading} />
+            <BidTable 
+              bids={bids} 
+              searchQuery={searchQuery} 
+              isLoading={bidsLoading}
+              onSelectBid={setSelectedBid}
+            />
           ) : (
             <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />
           )}
@@ -115,10 +123,16 @@ export default function Home() {
       <footer className="border-t border-[var(--border)] mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-[var(--muted)]">
-            Fairmarkit Bid Portal &copy; 2024
+            BaxterBids &copy; 2024 &middot; Powered by AI
           </p>
         </div>
       </footer>
+
+      {/* Bid Detail Modal */}
+      <BidDetailModal 
+        bid={selectedBid}
+        onClose={() => setSelectedBid(null)}
+      />
     </div>
   );
 }
