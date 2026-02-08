@@ -1,0 +1,115 @@
+2026-02-07T23:38:33.231112Z  INFO tailwindcss_oxide::scanner: Provided sources:
+2026-02-07T23:38:33.231197Z  INFO tailwindcss_oxide::scanner: Source: PublicSourceEntry { base: "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui", pattern: "**/*", negated: false }
+2026-02-07T23:38:33.231314Z  INFO tailwindcss_oxide::scanner: Optimized sources:
+2026-02-07T23:38:33.231326Z  INFO tailwindcss_oxide::scanner: Source: Auto { base: "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui" }
+2026-02-07T23:38:33.232631Z  INFO scan_sources: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.233922Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\eslint.config.mjs"
+2026-02-07T23:38:33.234357Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\next.config.ts"
+2026-02-07T23:38:33.234523Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\package.json"
+2026-02-07T23:38:33.234567Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\postcss.config.mjs"
+2026-02-07T23:38:33.234631Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public"
+2026-02-07T23:38:33.234719Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\file.svg"
+2026-02-07T23:38:33.234761Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\globe.svg"
+2026-02-07T23:38:33.234801Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\next.svg"
+2026-02-07T23:38:33.234841Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\vercel.svg"
+2026-02-07T23:38:33.234879Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\window.svg"
+2026-02-07T23:38:33.234931Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\README.md"
+2026-02-07T23:38:33.234992Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src"
+2026-02-07T23:38:33.235098Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app"
+2026-02-07T23:38:33.235208Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api"
+2026-02-07T23:38:33.235319Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\bids"
+2026-02-07T23:38:33.235403Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\bids\\route.ts"
+2026-02-07T23:38:33.235487Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\revalidate"
+2026-02-07T23:38:33.235574Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\revalidate\\route.ts"
+2026-02-07T23:38:33.235648Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\rfqs"
+2026-02-07T23:38:33.235733Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\rfqs\\route.ts"
+2026-02-07T23:38:33.235802Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\globals.css"
+2026-02-07T23:38:33.235847Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\layout.tsx"
+2026-02-07T23:38:33.235924Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\page.tsx"
+2026-02-07T23:38:33.235975Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\providers.tsx"
+2026-02-07T23:38:33.236055Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components"
+2026-02-07T23:38:33.236149Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\BidTable.tsx"
+2026-02-07T23:38:33.236190Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\Header.tsx"
+2026-02-07T23:38:33.236234Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\RFQTracker.tsx"
+2026-02-07T23:38:33.236288Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\StatsCards.tsx"
+2026-02-07T23:38:33.236374Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\hooks"
+2026-02-07T23:38:33.236461Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\hooks\\useData.ts"
+2026-02-07T23:38:33.236534Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\lib"
+2026-02-07T23:38:33.236622Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\lib\\sheets.ts"
+2026-02-07T23:38:33.236696Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\types"
+2026-02-07T23:38:33.236786Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\types\\index.ts"
+2026-02-07T23:38:33.236864Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\tsconfig.json"
+2026-02-07T23:38:33.236915Z  INFO scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\vercel.json"
+2026-02-07T23:38:33.236967Z  INFO scan_sources: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.236973Z  INFO extract_candidates: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.236979Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.236983Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 25 file(s)
+2026-02-07T23:38:33.237516Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\rfqs\\route.ts"
+2026-02-07T23:38:33.237526Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\eslint.config.mjs"
+2026-02-07T23:38:33.237583Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\layout.tsx"
+2026-02-07T23:38:33.237629Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\page.tsx"
+2026-02-07T23:38:33.237639Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\next.svg"
+2026-02-07T23:38:33.237663Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\postcss.config.mjs"
+2026-02-07T23:38:33.237673Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\providers.tsx"
+2026-02-07T23:38:33.237687Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\next.config.ts"
+2026-02-07T23:38:33.237739Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\vercel.svg"
+2026-02-07T23:38:33.237772Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\file.svg"
+2026-02-07T23:38:33.237760Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\BidTable.tsx"
+2026-02-07T23:38:33.237803Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\package.json"
+2026-02-07T23:38:33.237838Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\window.svg"
+2026-02-07T23:38:33.237858Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\lib\\sheets.ts"
+2026-02-07T23:38:33.237885Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\README.md"
+2026-02-07T23:38:33.237886Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\RFQTracker.tsx"
+2026-02-07T23:38:33.237931Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public\\globe.svg"
+2026-02-07T23:38:33.237937Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\Header.tsx"
+2026-02-07T23:38:33.237947Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\tsconfig.json"
+2026-02-07T23:38:33.237970Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components\\StatsCards.tsx"
+2026-02-07T23:38:33.237979Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\bids\\route.ts"
+2026-02-07T23:38:33.238012Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\revalidate\\route.ts"
+2026-02-07T23:38:33.238018Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\types\\index.ts"
+2026-02-07T23:38:33.238036Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\vercel.json"
+2026-02-07T23:38:33.238036Z  INFO tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\hooks\\useData.ts"
+2026-02-07T23:38:33.238094Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.238104Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.238109Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.238930Z  INFO extract_candidates:parse_all_blobs:extract: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.238948Z  INFO extract_candidates:parse_all_blobs: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.238953Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.238956Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading 1 file(s)
+2026-02-07T23:38:33.239038Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: Reading "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\globals.css"
+2026-02-07T23:38:33.239052Z  INFO extract_candidates:read_all_files: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.239060Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.239063Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.239565Z  INFO extract_candidates:extract_css_variables:extract: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.239582Z  INFO extract_candidates:extract_css_variables: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.240014Z  INFO extract_candidates: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.240322Z  INFO get_files: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.240329Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.241992Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public"
+2026-02-07T23:38:33.242250Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src"
+2026-02-07T23:38:33.242361Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app"
+2026-02-07T23:38:33.242468Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api"
+2026-02-07T23:38:33.242579Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\bids"
+2026-02-07T23:38:33.242711Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\revalidate"
+2026-02-07T23:38:33.242840Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\rfqs"
+2026-02-07T23:38:33.243077Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components"
+2026-02-07T23:38:33.243264Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\hooks"
+2026-02-07T23:38:33.243390Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\lib"
+2026-02-07T23:38:33.243518Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\types"
+2026-02-07T23:38:33.243689Z  INFO get_files:scan_sources: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.243848Z  INFO get_files: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.244131Z  INFO get_globs: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.244140Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: enter
+2026-02-07T23:38:33.246253Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\public"
+2026-02-07T23:38:33.246518Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src"
+2026-02-07T23:38:33.246621Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app"
+2026-02-07T23:38:33.246719Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api"
+2026-02-07T23:38:33.246818Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\bids"
+2026-02-07T23:38:33.246948Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\revalidate"
+2026-02-07T23:38:33.247076Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\app\\api\\rfqs"
+2026-02-07T23:38:33.247317Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\components"
+2026-02-07T23:38:33.247509Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\hooks"
+2026-02-07T23:38:33.247635Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\lib"
+2026-02-07T23:38:33.247760Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: Discovering "C:\\Users\\65Bax\\.openclaw\\workspace\\baxterbids-ui\\src\\types"
+2026-02-07T23:38:33.247977Z  INFO get_globs:scan_sources: tailwindcss_oxide::scanner: exit
+2026-02-07T23:38:33.250110Z  INFO get_globs: tailwindcss_oxide::scanner: exit

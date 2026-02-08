@@ -112,6 +112,7 @@ export default function Home() {
               searchQuery={searchQuery} 
               isLoading={bidsLoading}
               onSelectBid={setSelectedBid}
+              onBidUpdated={refreshBids}
             />
           ) : (
             <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />

@@ -119,4 +119,17 @@ export async function draftRFQ(
   });
 }
 
+/**
+ * Update bid status (e.g., mark as "No Bid")
+ */
+export async function updateBidStatus(
+  bidId: string,
+  status: 'No Bid' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'Open'
+): Promise<{ bid_id: string; status: string; updated_at: string }> {
+  return fetchApi(`/bids/${encodeURIComponent(bidId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export { ApiError };

@@ -2,17 +2,40 @@
 
 import { useState } from 'react';
 import { Bid } from '@/types';
+import { updateBidStatus } from '@/lib/api';
 
 interface BidTableProps {
   bids: Bid[];
   searchQuery: string;
   isLoading?: boolean;
   onSelectBid?: (bid: Bid) => void;
+  onBidUpdated?: () => void;
 }
 
-export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [updatingBid, setUpdatingBid] = useState<string | null>(null);
+
+  const handleNoBid = async (bid: Bid, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updatingBid) return;
+    
+    if (!confirm(`Mark "${bid.title}" as No Bid? This will hide it from future scrapes.`)) {
+      return;
+    }
+    
+    setUpdatingBid(bid.id);
+    try {
+      await updateBidStatus(bid.id, 'No Bid');
+      onBidUpdated?.();
+    } catch (error) {
+      console.error('Failed to update bid:', error);
+      alert('Failed to update bid status. Is the API server running?');
+    } finally {
+      setUpdatingBid(null);
+    }
+  };
 
   const filteredBids = bids
     .filter(bid => 
@@ -159,12 +182,21 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                         </svg>
                       </button>
                       <button 
-                        className="p-2 rounded-lg hover:bg-[var(--accent)]/10 text-[var(--muted)] hover:text-[var(--accent)] transition-all"
-                        title="Create RFQ"
+                        onClick={(e) => handleNoBid(bid, e)}
+                        disabled={updatingBid === bid.id}
+                        className="p-2 rounded-lg hover:bg-[var(--danger)]/10 text-[var(--muted)] hover:text-[var(--danger)] transition-all disabled:opacity-50"
+                        title="No Bid"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
+                        {updatingBid === bid.id ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        )}
                       </button>
                       <a 
                         href={bid.url}
