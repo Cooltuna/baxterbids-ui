@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bid, BidSummary, LineItem, Vendor } from '@/types';
-import { analyzeBid, batchSearchVendors, checkApiHealth, VendorMatrixResult } from '@/lib/api';
+import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, VendorMatrixResult } from '@/lib/api';
 import RFQDraftModal from './RFQDraftModal';
 
 interface BidDetailModalProps {
@@ -25,15 +25,18 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [bomText, setBomText] = useState('');
   const [rfqVendor, setRfqVendor] = useState<Vendor | null>(null);
   const [rfqItems, setRfqItems] = useState<LineItem[]>([]);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [isLoadingCache, setIsLoadingCache] = useState(false);
 
   // Check API availability on mount
   useEffect(() => {
     checkApiHealth().then(setApiAvailable);
   }, []);
 
-  // Reset state when bid changes
+  // Reset state and load cached data when bid changes
   useEffect(() => {
     if (bid) {
+      // Reset state
       setSummary(null);
       setSelectedItems(new Set());
       setVendorMatrix(null);
@@ -41,6 +44,34 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
       setActiveTab('summary');
       setShowPasteBom(false);
       setBomText('');
+      setIsFromCache(false);
+      
+      // Try to load cached data
+      const loadCachedData = async () => {
+        setIsLoadingCache(true);
+        try {
+          // Load cached analysis
+          const cachedAnalysis = await getCachedAnalysis(bid.id);
+          if (cachedAnalysis) {
+            setSummary(cachedAnalysis);
+            setSelectedItems(new Set(cachedAnalysis.line_items.map((_: LineItem, i: number) => i)));
+            setIsFromCache(true);
+            
+            // If we have analysis, also try to load cached vendors
+            const cachedVendors = await getCachedVendors(bid.id);
+            if (cachedVendors) {
+              setVendorMatrix(cachedVendors);
+            }
+          }
+        } catch (err) {
+          // Silently fail - cache loading is optional
+          console.log('No cached data available');
+        } finally {
+          setIsLoadingCache(false);
+        }
+      };
+      
+      loadCachedData();
     }
   }, [bid?.id]);
 
@@ -73,6 +104,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
       // Switch to BOM tab after analysis
       setActiveTab('bom');
       setShowPasteBom(false);
+      setIsFromCache(false); // Fresh analysis
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze bid');
     } finally {
@@ -100,7 +132,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   };
 
   const handleBatchResearch = async () => {
-    if (!summary || selectedItems.size === 0) return;
+    if (!summary || selectedItems.size === 0 || !bid) return;
 
     setIsSearchingVendors(true);
     setError(null);
@@ -108,8 +140,10 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
 
     try {
       const items = Array.from(selectedItems).map(i => summary.line_items[i]);
-      const result = await batchSearchVendors(items);
+      // Include bid_id for caching
+      const result = await batchSearchVendors(items, bid.id);
       setVendorMatrix(result);
+      setIsFromCache(false); // Fresh data
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search vendors');
     } finally {
@@ -405,6 +439,18 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                       >
                         View Bill of Materials →
                       </button>
+                      {isFromCache && (
+                        <button
+                          onClick={() => {
+                            setSummary(null);
+                            setVendorMatrix(null);
+                            setIsFromCache(false);
+                          }}
+                          className="px-4 py-2 border border-[var(--border)] text-[var(--foreground)] rounded-lg font-medium hover:bg-[var(--card)] transition-colors"
+                        >
+                          Re-analyze
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -702,8 +748,24 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
           {/* Footer */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border)] bg-[var(--card)]/50 flex-shrink-0">
             <div className="text-sm text-[var(--muted)]">
-              {summary && (
-                <span>Analyzed {new Date(summary.analyzed_at).toLocaleString()}</span>
+              {isLoadingCache && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Loading saved data...
+                </span>
+              )}
+              {summary && !isLoadingCache && (
+                <span className="flex items-center gap-2">
+                  {isFromCache && (
+                    <span className="px-2 py-0.5 text-xs rounded bg-[var(--success)]/20 text-[var(--success)]">
+                      📁 Cached
+                    </span>
+                  )}
+                  Analyzed {new Date(summary.analyzed_at).toLocaleString()}
+                </span>
               )}
             </div>
             <div className="flex items-center gap-2">

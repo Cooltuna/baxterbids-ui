@@ -60,6 +60,34 @@ export async function checkApiHealth(): Promise<boolean> {
 }
 
 /**
+ * Get cached analysis for a bid (if previously analyzed)
+ */
+export async function getCachedAnalysis(bidId: string): Promise<BidSummary | null> {
+  try {
+    return await fetchApi<BidSummary>(`/bids/${encodeURIComponent(bidId)}/analysis`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null; // No cached data
+    }
+    throw error;
+  }
+}
+
+/**
+ * Get cached vendors for a bid
+ */
+export async function getCachedVendors(bidId: string): Promise<VendorMatrixResult | null> {
+  try {
+    return await fetchApi<VendorMatrixResult>(`/bids/${encodeURIComponent(bidId)}/vendors`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null; // No cached data
+    }
+    throw error;
+  }
+}
+
+/**
  * Analyze a bid opportunity
  */
 export async function analyzeBid(
@@ -119,11 +147,13 @@ export interface VendorMatrixResult {
 
 export async function batchSearchVendors(
   items: Array<{ description: string; quantity?: string; specifications?: string }>,
+  bidId?: string,
   location?: string
 ): Promise<VendorMatrixResult> {
   return fetchApi<VendorMatrixResult>('/vendors/search/batch', {
     method: 'POST',
     body: JSON.stringify({
+      bid_id: bidId,
       items,
       location,
     }),
