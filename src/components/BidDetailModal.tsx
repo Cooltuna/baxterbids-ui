@@ -20,6 +20,8 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [isSearchingVendors, setIsSearchingVendors] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
+  const [showPasteBom, setShowPasteBom] = useState(false);
+  const [bomText, setBomText] = useState('');
 
   // Check API availability on mount
   useEffect(() => {
@@ -34,14 +36,21 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
       setVendorMatrix(null);
       setError(null);
       setActiveTab('summary');
+      setShowPasteBom(false);
+      setBomText('');
     }
   }, [bid?.id]);
 
   if (!bid) return null;
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (usePastedBom = false) => {
     if (!bid.url) {
       setError('No URL available for this bid');
+      return;
+    }
+
+    if (usePastedBom && !bomText.trim()) {
+      setError('Please paste the BOM text first');
       return;
     }
 
@@ -49,12 +58,18 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
     setError(null);
 
     try {
-      const result = await analyzeBid(bid.id, bid.url, bid.title);
+      const result = await analyzeBid(
+        bid.id, 
+        bid.url, 
+        bid.title,
+        usePastedBom ? bomText.trim() : undefined
+      );
       setSummary(result);
       // Auto-select all items
       setSelectedItems(new Set(result.line_items.map((_, i) => i)));
       // Switch to BOM tab after analysis
       setActiveTab('bom');
+      setShowPasteBom(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze bid');
     } finally {
@@ -201,7 +216,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
             {activeTab === 'summary' && (
               <div>
                 {!summary ? (
-                  <div className="text-center py-12">
+                  <div className="text-center py-8">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
                       <svg className="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -211,30 +226,85 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                       AI-Powered Analysis
                     </h3>
                     <p className="text-[var(--muted)] mb-6 max-w-md mx-auto">
-                      Click analyze to extract Bill of Materials, requirements, and key dates from this bid.
+                      Analyze this bid to extract the Bill of Materials, requirements, and key dates.
                     </p>
-                    <button
-                      onClick={handleAnalyze}
-                      disabled={isAnalyzing || apiAvailable === false}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    
+                    {!showPasteBom ? (
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => handleAnalyze(false)}
+                          disabled={isAnalyzing || apiAvailable === false}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                              Analyzing...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              Auto-Analyze from URL
+                            </>
+                          )}
+                        </button>
+                        <div className="text-[var(--muted)] text-sm">or</div>
+                        <button
+                          onClick={() => setShowPasteBom(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2 border border-[var(--border)] text-[var(--foreground)] rounded-lg font-medium hover:bg-[var(--card)] transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Analyze Bid
-                        </>
-                      )}
-                    </button>
+                          Paste BOM from Fairmarkit
+                        </button>
+                        <p className="text-xs text-[var(--muted)] max-w-sm mx-auto">
+                          For detailed BOMs, copy the item list from Fairmarkit and paste it here
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="max-w-2xl mx-auto text-left">
+                        <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                          Paste BOM text from Fairmarkit:
+                        </label>
+                        <textarea
+                          value={bomText}
+                          onChange={(e) => setBomText(e.target.value)}
+                          placeholder="Paste the entire bid details including items list from Fairmarkit..."
+                          className="w-full h-48 px-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm font-mono focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
+                        />
+                        <div className="flex items-center justify-between mt-3">
+                          <button
+                            onClick={() => setShowPasteBom(false)}
+                            className="px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleAnalyze(true)}
+                            disabled={isAnalyzing || !bomText.trim()}
+                            className="inline-flex items-center gap-2 px-6 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isAnalyzing ? (
+                              <>
+                                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Analyzing...
+                              </>
+                            ) : (
+                              'Analyze Pasted BOM'
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-6">

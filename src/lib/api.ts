@@ -65,7 +65,8 @@ export async function checkApiHealth(): Promise<boolean> {
 export async function analyzeBid(
   bidId: string,
   bidUrl: string,
-  title?: string
+  title?: string,
+  rawBomText?: string
 ): Promise<BidSummary> {
   return fetchApi<BidSummary>('/analyze', {
     method: 'POST',
@@ -73,6 +74,7 @@ export async function analyzeBid(
       bid_id: bidId,
       bid_url: bidUrl,
       title,
+      raw_bom_text: rawBomText,
     }),
   });
 }
