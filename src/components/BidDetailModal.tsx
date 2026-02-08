@@ -729,18 +729,74 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
 
             {/* RFQ Tab */}
             {activeTab === 'rfq' && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
-                  <svg className="w-8 h-8 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
-                  RFQ Generator
-                </h3>
-                <p className="text-[var(--muted)]">
-                  Coming soon: Generate and send RFQs directly to vendors from the matrix.
-                </p>
+              <div>
+                {!vendorMatrix ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
+                      <svg className="w-8 h-8 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+                      RFQ Generator
+                    </h3>
+                    <p className="text-[var(--muted)] mb-4">
+                      Research vendors first, then generate RFQs from the vendor matrix.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('vendors')}
+                      className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors"
+                    >
+                      Go to Vendors Tab
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="p-4 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/30">
+                      <h4 className="font-semibold text-[var(--accent)] mb-2">📝 How to Generate RFQs</h4>
+                      <ol className="text-sm space-y-2 text-[var(--foreground)]">
+                        <li>1. Go to the <strong>Vendors</strong> tab</li>
+                        <li>2. Find a vendor you want to request quotes from</li>
+                        <li>3. Click the <strong>&quot;Draft RFQ&quot;</strong> button next to their name</li>
+                        <li>4. AI will generate a professional email based on the items they can supply</li>
+                        <li>5. Review, edit, and send!</li>
+                      </ol>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">
+                        Quick RFQ - Select a Vendor
+                      </h4>
+                      <div className="grid gap-3">
+                        {vendorMatrix.vendors.map((vendor, idx) => (
+                          <div 
+                            key={idx} 
+                            className="p-4 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-between"
+                          >
+                            <div>
+                              <p className="font-medium text-[var(--foreground)]">{vendor.name}</p>
+                              <p className="text-sm text-[var(--muted)]">
+                                Can supply {vendor.can_supply.length} of {vendorMatrix.items.length} items
+                              </p>
+                            </div>
+                            <button 
+                              onClick={() => handleDraftRFQ({
+                                name: vendor.name,
+                                website: vendor.website,
+                                contact: vendor.contact,
+                                products: [],
+                                can_supply: vendor.can_supply
+                              } as Vendor & { can_supply: number[] })}
+                              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                            >
+                              Draft RFQ
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
