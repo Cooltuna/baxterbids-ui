@@ -102,21 +102,27 @@ export async function fetchRFQs(): Promise<SheetRFQ[]> {
     const sheets = getSheets();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'RFQ Log!A2:I100', // Skip header row
+      range: 'RFQ Log!A2:H100', // Skip header row
     });
 
     const rows = response.data.values || [];
     const today = new Date();
     
-    // Adjust columns based on your RFQ Log structure
-    // Assuming: A=RFQ ID, B=Bid ID, C=Vendor, D=Status, E=Sent Date, F=Due Date, G=Received Date, H=Quote Amount, I=Notes
-    return rows.map((row) => {
-      const sentDate = row[4] || '';
-      const receivedDate = row[6] || '';
-      let status: 'draft' | 'sent' | 'received' | 'overdue' = (row[3] || 'draft').toLowerCase() as any;
+    // Actual columns: A=Date, B=Bid ID, C=Distributor, D=Contact, E=Items Requested, F=Quote Received (status), G=Quote Amount, H=Notes
+    return rows.map((row, index) => {
+      const sentDate = row[0] || ''; // Column A - Date (when sent)
+      const statusRaw = (row[5] || 'sent').toLowerCase(); // Column F - Quote Received
       
-      // Auto-calculate overdue status
-      if (status === 'sent' && sentDate && !receivedDate) {
+      // Map status: "sent" means waiting, "received" means got quote
+      let status: 'draft' | 'sent' | 'received' | 'overdue' = 'sent';
+      if (statusRaw === 'received' || statusRaw === 'yes') {
+        status = 'received';
+      } else if (statusRaw === 'draft') {
+        status = 'draft';
+      }
+      
+      // Auto-calculate overdue status (more than 2 days since sent, no quote)
+      if (status === 'sent' && sentDate) {
         const sentDateTime = new Date(sentDate);
         const daysSinceSent = Math.floor(
           (today.getTime() - sentDateTime.getTime()) / (1000 * 60 * 60 * 24)
@@ -125,16 +131,16 @@ export async function fetchRFQs(): Promise<SheetRFQ[]> {
       }
 
       return {
-        id: row[0] || '',           // Column A - RFQ ID
+        id: `RFQ-${index + 1}`,     // Generate ID from row index
         bidId: row[1] || '',        // Column B - Bid ID
-        vendor: row[2] || '',       // Column C - Vendor
+        vendor: row[2] || '',       // Column C - Distributor
         status,
-        sentDate,
-        dueDate: row[5] || '',      // Column F - Due Date
-        receivedDate,
-        quoteAmount: row[7] || '',  // Column H - Quote Amount
+        sentDate: sentDate.split(' ')[0], // Just the date part
+        dueDate: '',                // Not in current structure
+        receivedDate: status === 'received' ? sentDate : '',
+        quoteAmount: row[6] || '',  // Column G - Quote Amount
       };
-    }).filter(rfq => rfq.id); // Filter out empty rows
+    }).filter(rfq => rfq.bidId); // Filter out empty rows
   } catch (error) {
     console.error('Error fetching RFQs:', error);
     throw error;
