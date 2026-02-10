@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bid, BidSummary, LineItem, Vendor } from '@/types';
-import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, getBidRFQs, VendorMatrixResult, RFQRecord } from '@/lib/api';
+import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, getBidRFQs, fetchBidDetails, VendorMatrixResult, RFQRecord } from '@/lib/api';
 import RFQDraftModal from './RFQDraftModal';
 
 interface BidDetailModalProps {
@@ -110,11 +110,23 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
     setError(null);
 
     try {
+      let rawBomText = usePastedBom ? bomText.trim() : undefined;
+      
+      // For Unison bids, fetch details using authenticated scraper
+      if (bid.source?.toLowerCase() === 'unison' && !usePastedBom) {
+        try {
+          const details = await fetchBidDetails(bid.id, bid.url, 'unison');
+          rawBomText = details.description;
+        } catch (fetchErr) {
+          console.warn('Failed to fetch Unison details, trying direct analysis:', fetchErr);
+        }
+      }
+      
       const result = await analyzeBid(
         bid.id, 
         bid.url, 
         bid.title,
-        usePastedBom ? bomText.trim() : undefined
+        rawBomText
       );
       setSummary(result);
       // Auto-select all items

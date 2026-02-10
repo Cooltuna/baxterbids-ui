@@ -238,4 +238,22 @@ export async function getRFQSummary(): Promise<RFQSummary> {
   }
 }
 
+/**
+ * Fetch bid details from authenticated source (e.g., Unison)
+ */
+export async function fetchBidDetails(
+  bidId: string,
+  bidUrl: string,
+  source: string
+): Promise<{ bid_id: string; description: string; raw_html: string; fetched_at: string }> {
+  return fetchApi('/bids/fetch-details', {
+    method: 'POST',
+    body: JSON.stringify({
+      bid_id: bidId,
+      bid_url: bidUrl,
+      source: source,
+    }),
+  });
+}
+
 export { ApiError };
