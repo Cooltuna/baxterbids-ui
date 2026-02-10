@@ -6,18 +6,25 @@ import StatsCards from '@/components/StatsCards';
 import BidTable from '@/components/BidTable';
 import RFQTracker from '@/components/RFQTracker';
 import BidDetailModal from '@/components/BidDetailModal';
-import { useBids, useRFQs, useStats } from '@/hooks/useData';
+import { useBids, useRFQs, useSources, useStats } from '@/hooks/useData';
 import { Bid } from '@/types';
 import { getRFQSummary, RFQSummary } from '@/lib/api';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<'bids' | 'rfqs'>('bids');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
   
   const { bids, isLoading: bidsLoading, timestamp: bidsTimestamp, refresh: refreshBids } = useBids();
   const { rfqs, isLoading: rfqsLoading, refresh: refreshRFQs } = useRFQs();
+  const { sources } = useSources();
   const stats = useStats();
+  
+  // Filter bids by source
+  const filteredBidsBySource = sourceFilter === 'all' 
+    ? bids 
+    : bids.filter(b => b.source === sourceFilter);
   const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
 
   // Fetch RFQ summary for dashboard badges
@@ -73,7 +80,7 @@ export default function Home() {
             }`}
           >
             Active Bids
-            <span className="ml-2 text-xs text-[var(--muted)]">({bids.length})</span>
+            <span className="ml-2 text-xs text-[var(--muted)]">({filteredBidsBySource.length})</span>
             {activeTab === 'bids' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full" />
             )}
@@ -119,16 +126,51 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Source Filter Tabs (only show when on bids tab) */}
+        {activeTab === 'bids' && (
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setSourceFilter('all')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                sourceFilter === 'all'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
+              }`}
+            >
+              All Sources
+              <span className="ml-2 text-xs opacity-75">({bids.length})</span>
+            </button>
+            {sources.map((source) => {
+              const count = bids.filter(b => b.source === source.name).length;
+              return (
+                <button
+                  key={source.id}
+                  onClick={() => setSourceFilter(source.name)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    sourceFilter === source.name
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
+                  }`}
+                >
+                  {source.name}
+                  <span className="ml-2 text-xs opacity-75">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Content */}
         <div className="mt-6">
           {activeTab === 'bids' ? (
             <BidTable 
-              bids={bids} 
+              bids={filteredBidsBySource} 
               searchQuery={searchQuery} 
               isLoading={bidsLoading}
               onSelectBid={setSelectedBid}
               onBidUpdated={refreshBids}
               rfqSummary={rfqSummary}
+              showSource={sourceFilter === 'all'}
             />
           ) : (
             <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />

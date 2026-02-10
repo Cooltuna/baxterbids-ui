@@ -59,6 +59,7 @@ export interface Bid {
   category: string | null;
   url: string | null;
   created_at: string;
+  sources?: { name: string };
 }
 
 export interface RFQ {
@@ -80,7 +81,7 @@ export interface Source {
 
 export async function fetchBids(): Promise<Bid[]> {
   const bids = await supabaseQuery<Bid>('bids', {
-    select: '*',
+    select: '*,sources(name)',
     order: 'close_date.asc.nullslast',
   });
   
@@ -145,6 +146,7 @@ export function transformBid(bid: Bid) {
     category: bid.category || '',
     url: bid.url || '#',
     sheetStatus: bid.status,
+    source: bid.sources?.name || 'Unknown',
   };
 }
 

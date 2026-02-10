@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { Bid, RFQ } from '@/types';
+import { Bid, RFQ, Source } from '@/types';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -47,6 +47,23 @@ export function useRFQs() {
     isError: error || !data?.success,
     timestamp: data?.timestamp,
     refresh: mutate,
+  };
+}
+
+export function useSources() {
+  const { data, error, isLoading } = useSWR<ApiResponse<Source[]>>(
+    '/api/sources',
+    fetcher,
+    {
+      refreshInterval: 300000, // Refresh every 5 minutes (sources rarely change)
+      revalidateOnFocus: false,
+    }
+  );
+
+  return {
+    sources: data?.data || [],
+    isLoading,
+    isError: error || !data?.success,
   };
 }
 

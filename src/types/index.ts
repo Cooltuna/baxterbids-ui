@@ -9,6 +9,12 @@ export interface Bid {
   url: string;
   sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'No Bid';
   isAnalyzed?: boolean;
+  source?: string;
+}
+
+export interface Source {
+  id: string;
+  name: string;
 }
 
 export interface RFQ {

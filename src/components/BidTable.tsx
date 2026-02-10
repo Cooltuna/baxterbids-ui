@@ -11,9 +11,10 @@ interface BidTableProps {
   onSelectBid?: (bid: Bid) => void;
   onBidUpdated?: () => void;
   rfqSummary?: RFQSummary;
+  showSource?: boolean;
 }
 
-export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated, rfqSummary = {} }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated, rfqSummary = {}, showSource = false }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
@@ -60,7 +61,8 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     .filter(bid => 
       bid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bid.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bid.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      bid.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bid.source?.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (sortBy === 'closeDate') {
@@ -119,6 +121,11 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                   )}
                 </button>
               </th>
+              {showSource && (
+                <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                  Source
+                </th>
+              )}
               <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                 Category
               </th>
@@ -171,6 +178,13 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                       </p>
                     </div>
                   </td>
+                  {showSource && (
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--accent)]/10 text-xs font-medium text-[var(--accent)]">
+                        {bid.source || 'Unknown'}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--card)] text-xs font-medium text-[var(--foreground)]">
                       {bid.category || 'General'}
