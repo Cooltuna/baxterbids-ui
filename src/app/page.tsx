@@ -1,48 +1,100 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header';
-import StatsCards from '@/components/StatsCards';
-import BidTable from '@/components/BidTable';
-import RFQTracker from '@/components/RFQTracker';
-import BidDetailModal from '@/components/BidDetailModal';
-import { useBids, useRFQs, useSources, useStats } from '@/hooks/useData';
-import { Bid } from '@/types';
-import { getRFQSummary, RFQSummary } from '@/lib/api';
+import { Bid, Source } from '@/types';
+
+interface SourceWithStats extends Source {
+  stats: {
+    total: number;
+    closingToday: number;
+    closingThreeDays: number;
+    unreviewed: number;
+  };
+}
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'bids' | 'rfqs'>('bids');
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
-  
-  const { bids, isLoading: bidsLoading, timestamp: bidsTimestamp, refresh: refreshBids } = useBids();
-  const { rfqs, isLoading: rfqsLoading, refresh: refreshRFQs } = useRFQs();
-  const { sources } = useSources();
-  const stats = useStats();
-  
-  // Filter bids by source
-  const filteredBidsBySource = sourceFilter === 'all' 
-    ? bids 
-    : bids.filter(b => b.source === sourceFilter);
-  const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
+  const [sources, setSources] = useState<SourceWithStats[]>([]);
+  const [allBids, setAllBids] = useState<Bid[]>([]);
+  const [urgentBids, setUrgentBids] = useState<Bid[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [timestamp, setTimestamp] = useState<string>();
 
-  // Fetch RFQ summary for dashboard badges
+  // Fetch all data
   useEffect(() => {
-    const fetchSummary = async () => {
-      const summary = await getRFQSummary();
-      setRfqSummary(summary);
-    };
-    fetchSummary();
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        // Fetch sources
+        const sourcesRes = await fetch('/api/sources');
+        const sourcesData = await sourcesRes.json();
+        
+        // Fetch all bids
+        const bidsRes = await fetch('/api/bids');
+        const bidsData = await bidsRes.json();
+        
+        if (bidsData.success) {
+          const bids = bidsData.data;
+          setAllBids(bids);
+          setTimestamp(bidsData.timestamp);
+          
+          // Calculate urgent bids (closing within 3 days)
+          const urgent = bids.filter((bid: Bid) => {
+            if (!bid.closeDate) return false;
+            const days = getDaysUntilClose(bid.closeDate);
+            return days !== null && days <= 3;
+          }).sort((a: Bid, b: Bid) => {
+            const daysA = getDaysUntilClose(a.closeDate) ?? 999;
+            const daysB = getDaysUntilClose(b.closeDate) ?? 999;
+            return daysA - daysB;
+          });
+          setUrgentBids(urgent.slice(0, 10));
+          
+          // Calculate stats per source
+          if (sourcesData.success) {
+            const sourcesWithStats = sourcesData.data.map((source: Source) => {
+              const sourceBids = bids.filter((b: Bid) => b.source === source.name);
+              return {
+                ...source,
+                stats: {
+                  total: sourceBids.length,
+                  closingToday: sourceBids.filter((b: Bid) => {
+                    const days = getDaysUntilClose(b.closeDate);
+                    return days !== null && days <= 0;
+                  }).length,
+                  closingThreeDays: sourceBids.filter((b: Bid) => {
+                    const days = getDaysUntilClose(b.closeDate);
+                    return days !== null && days > 0 && days <= 3;
+                  }).length,
+                  unreviewed: sourceBids.filter((b: Bid) => !b.sheetStatus || b.sheetStatus === 'Open').length,
+                }
+              };
+            });
+            setSources(sourcesWithStats);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
     
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchSummary, 30000);
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 
+  function getDaysUntilClose(closeDate: string): number | null {
+    if (!closeDate) return null;
+    const today = new Date();
+    const close = new Date(closeDate);
+    return Math.ceil((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
   const handleRefresh = () => {
-    refreshBids();
-    refreshRFQs();
+    window.location.reload();
   };
 
   const formatTimestamp = (ts?: string) => {
@@ -51,130 +103,188 @@ export default function Home() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSecs = Math.floor(diffMs / 1000);
-    
     if (diffSecs < 60) return `${diffSecs}s ago`;
     if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)}m ago`;
     return date.toLocaleTimeString();
   };
 
+  // Overall stats
+  const totalBids = allBids.length;
+  const totalClosingToday = allBids.filter(b => {
+    const days = getDaysUntilClose(b.closeDate);
+    return days !== null && days <= 0;
+  }).length;
+  const totalClosingThreeDays = allBids.filter(b => {
+    const days = getDaysUntilClose(b.closeDate);
+    return days !== null && days > 0 && days <= 3;
+  }).length;
+  const totalUnreviewed = allBids.filter(b => !b.sheetStatus || b.sheetStatus === 'Open').length;
+
   return (
     <div className="min-h-screen">
       <Header 
         onRefresh={handleRefresh} 
-        lastSync={formatTimestamp(bidsTimestamp)}
-        isLoading={bidsLoading || rfqsLoading}
+        lastSync={formatTimestamp(timestamp)}
+        isLoading={isLoading}
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <StatsCards stats={stats} isLoading={bidsLoading || rfqsLoading} />
+        {/* Hero Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">BaxterBids Overview</h1>
+          <p className="text-[var(--muted)] mt-1">Unified bid management across all sources</p>
+        </div>
 
-        {/* Tab Navigation */}
-        <div className="mt-8 flex items-center gap-4 border-b border-[var(--border)]">
-          <button
-            onClick={() => setActiveTab('bids')}
-            className={`pb-4 px-2 text-sm font-medium transition-all relative ${
-              activeTab === 'bids' 
-                ? 'text-[var(--accent)]' 
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            Active Bids
-            <span className="ml-2 text-xs text-[var(--muted)]">({filteredBidsBySource.length})</span>
-            {activeTab === 'bids' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('rfqs')}
-            className={`pb-4 px-2 text-sm font-medium transition-all relative ${
-              activeTab === 'rfqs' 
-                ? 'text-[var(--accent)]' 
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            RFQ Tracker
-            {stats.rfqsOverdue > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-[var(--danger)] rounded-full">
-                {stats.rfqsOverdue}
-              </span>
-            )}
-            {activeTab === 'rfqs' && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent)] rounded-full" />
-            )}
-          </button>
-
-          {/* Search */}
-          <div className="ml-auto pb-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-2 pl-10 text-sm focus:outline-none focus:border-[var(--accent)] transition-colors"
-              />
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+        {/* Overall Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+            <p className="text-4xl font-bold text-[var(--foreground)]">{totalBids}</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Total Active Bids</p>
+          </div>
+          <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--danger)]/30">
+            <p className="text-4xl font-bold text-[var(--danger)]">{totalClosingToday}</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Closing Today</p>
+          </div>
+          <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--warning)]/30">
+            <p className="text-4xl font-bold text-[var(--warning)]">{totalClosingThreeDays}</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Closing in 3 Days</p>
+          </div>
+          <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--accent)]/30">
+            <p className="text-4xl font-bold text-[var(--accent)]">{totalUnreviewed}</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Unreviewed</p>
           </div>
         </div>
 
-        {/* Source Filter Tabs (only show when on bids tab) */}
-        {activeTab === 'bids' && (
-          <div className="mt-4 flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setSourceFilter('all')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                sourceFilter === 'all'
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
-              }`}
-            >
-              All Sources
-              <span className="ml-2 text-xs opacity-75">({bids.length})</span>
-            </button>
-            {sources.map((source) => {
-              const count = bids.filter(b => b.source === source.name).length;
-              return (
-                <button
-                  key={source.id}
-                  onClick={() => setSourceFilter(source.name)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    sourceFilter === source.name
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
-                  }`}
-                >
-                  {source.name}
-                  <span className="ml-2 text-xs opacity-75">({count})</span>
-                </button>
-              );
-            })}
-          </div>
+        {/* Source Cards */}
+        <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">Bid Sources</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {isLoading ? (
+            // Loading skeletons
+            [1, 2, 3].map(i => (
+              <div key={i} className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)] animate-pulse">
+                <div className="h-6 w-32 bg-[var(--border)] rounded mb-4" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-16 bg-[var(--border)] rounded" />
+                  <div className="h-16 bg-[var(--border)] rounded" />
+                </div>
+              </div>
+            ))
+          ) : (
+            sources.map(source => (
+              <Link
+                key={source.id}
+                href={`/sources/${source.name.toLowerCase()}`}
+                className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)] hover:border-[var(--accent)] transition-all group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+                    {source.name}
+                  </h3>
+                  <svg className="w-5 h-5 text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-2xl font-bold text-[var(--foreground)]">{source.stats.total}</p>
+                    <p className="text-xs text-[var(--muted)]">Active</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-[var(--accent)]">{source.stats.unreviewed}</p>
+                    <p className="text-xs text-[var(--muted)]">Unreviewed</p>
+                  </div>
+                </div>
+                
+                {(source.stats.closingToday > 0 || source.stats.closingThreeDays > 0) && (
+                  <div className="mt-4 pt-4 border-t border-[var(--border)] flex gap-4">
+                    {source.stats.closingToday > 0 && (
+                      <span className="text-xs text-[var(--danger)] font-medium">
+                        ⚠️ {source.stats.closingToday} closing today
+                      </span>
+                    )}
+                    {source.stats.closingThreeDays > 0 && (
+                      <span className="text-xs text-[var(--warning)] font-medium">
+                        ⏰ {source.stats.closingThreeDays} closing soon
+                      </span>
+                    )}
+                  </div>
+                )}
+              </Link>
+            ))
+          )}
+        </div>
+
+        {/* Urgent Bids */}
+        {urgentBids.length > 0 && (
+          <>
+            <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">
+              ⚡ Urgent - Closing Soon
+            </h2>
+            <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] overflow-hidden mb-8">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[var(--background)]">
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-[var(--muted)] uppercase">Source</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-[var(--muted)] uppercase">Bid</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-[var(--muted)] uppercase">Closes</th>
+                    <th className="text-right px-6 py-3 text-xs font-semibold text-[var(--muted)] uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {urgentBids.map(bid => {
+                    const daysLeft = getDaysUntilClose(bid.closeDate);
+                    return (
+                      <tr key={`${bid.source}-${bid.id}`} className="hover:bg-[var(--background)] transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[var(--accent)]/10 text-xs font-medium text-[var(--accent)]">
+                            {bid.source}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-[var(--foreground)]">{bid.title}</p>
+                          <p className="text-sm text-[var(--muted)]">{bid.id} · {bid.agency}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className={`font-medium ${daysLeft !== null && daysLeft <= 0 ? 'text-[var(--danger)]' : 'text-[var(--warning)]'}`}>
+                            {daysLeft !== null && daysLeft <= 0 ? 'TODAY' : `${daysLeft} days`}
+                          </p>
+                          <p className="text-xs text-[var(--muted)]">
+                            {new Date(bid.closeDate).toLocaleDateString()}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Link
+                            href={`/sources/${bid.source?.toLowerCase()}`}
+                            className="text-sm text-[var(--accent)] hover:underline"
+                          >
+                            View →
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        {/* Content */}
-        <div className="mt-6">
-          {activeTab === 'bids' ? (
-            <BidTable 
-              bids={filteredBidsBySource} 
-              searchQuery={searchQuery} 
-              isLoading={bidsLoading}
-              onSelectBid={setSelectedBid}
-              onBidUpdated={refreshBids}
-              rfqSummary={rfqSummary}
-              showSource={sourceFilter === 'all'}
-            />
-          ) : (
-            <RFQTracker rfqs={rfqs} searchQuery={searchQuery} isLoading={rfqsLoading} />
-          )}
+        {/* Quick Actions */}
+        <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--accent)] transition-all text-left">
+            <p className="font-medium text-[var(--foreground)]">📊 Export Report</p>
+            <p className="text-sm text-[var(--muted)]">Download bid summary as CSV</p>
+          </button>
+          <button className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--accent)] transition-all text-left">
+            <p className="font-medium text-[var(--foreground)]">🔔 Notification Settings</p>
+            <p className="text-sm text-[var(--muted)]">Configure alerts and reminders</p>
+          </button>
+          <button className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)] hover:border-[var(--accent)] transition-all text-left">
+            <p className="font-medium text-[var(--foreground)]">⚙️ Source Configuration</p>
+            <p className="text-sm text-[var(--muted)]">Manage bid source settings</p>
+          </button>
         </div>
       </main>
 
@@ -182,16 +292,10 @@ export default function Home() {
       <footer className="border-t border-[var(--border)] mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-[var(--muted)]">
-            BaxterBids &copy; 2024 &middot; Powered by AI
+            BaxterBids &copy; 2024 &middot; Unified Bid Management
           </p>
         </div>
       </footer>
-
-      {/* Bid Detail Modal */}
-      <BidDetailModal 
-        bid={selectedBid}
-        onClose={() => setSelectedBid(null)}
-      />
     </div>
   );
 }

@@ -1,11 +1,22 @@
-import { NextResponse } from 'next/server';
-import { fetchBids, transformBid } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchBids, fetchBidsBySource, transformBid } from '@/lib/supabase';
 
 export const revalidate = 30; // Revalidate every 30 seconds
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const bids = await fetchBids();
+    const { searchParams } = new URL(request.url);
+    const sourceFilter = searchParams.get('source');
+    
+    // Fetch bids - either all or by source
+    let bids;
+    if (sourceFilter) {
+      // Capitalize first letter to match source name in DB
+      const sourceName = sourceFilter.charAt(0).toUpperCase() + sourceFilter.slice(1);
+      bids = await fetchBidsBySource(sourceName);
+    } else {
+      bids = await fetchBids();
+    }
     
     // Calculate cutoff: 2 days after close date
     const cutoffDate = new Date();
@@ -27,7 +38,7 @@ export async function GET() {
       success: true,
       data: transformedBids,
       timestamp: new Date().toISOString(),
-      source: 'supabase',
+      source: sourceFilter || 'all',
     });
   } catch (error) {
     console.error('API Error fetching bids:', error);
