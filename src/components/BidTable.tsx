@@ -23,17 +23,13 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     e.stopPropagation();
     if (updatingBid) return;
     
-    if (!confirm(`Mark "${bid.title}" as No Bid? This will hide it from future scrapes.`)) {
-      return;
-    }
-    
+    // No confirmation - fast workflow for high volume
     setUpdatingBid(bid.id);
     try {
       await updateBidStatus(bid.id, 'No Bid');
       onBidUpdated?.();
     } catch (error) {
       console.error('Failed to update bid:', error);
-      alert('Failed to update bid status. Is the API server running?');
     } finally {
       setUpdatingBid(null);
     }
@@ -49,10 +45,15 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
       const isInterested = bid.sheetStatus?.toLowerCase() === 'interested';
       const newStatus = isInterested ? 'Open' : 'Interested';
       await updateBidStatus(bid.id, newStatus);
+      
+      // If marking as Interested, open the detail modal to trigger analysis
+      if (!isInterested && onSelectBid) {
+        onSelectBid(bid);
+      }
+      
       onBidUpdated?.();
     } catch (error) {
       console.error('Failed to update bid:', error);
-      alert('Failed to update bid status. Is the API server running?');
     } finally {
       setUpdatingBid(null);
     }
