@@ -13,12 +13,20 @@ export default function Header({ onRefresh, lastSync = 'Never', isLoading = fals
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-cyan-400 flex items-center justify-center shadow-lg shadow-[var(--accent)]/20">
-              <span className="text-xl">🦡</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-amber-400 flex items-center justify-center shadow-lg shadow-[var(--accent)]/20">
+              {/* Playful delivery box with eyes */}
+              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="8" width="18" height="13" rx="2" fill="#1a1a1a" stroke="white" strokeWidth="1.5"/>
+                <path d="M3 11h18" stroke="white" strokeWidth="1.5"/>
+                <path d="M12 8V5l-3 3M12 5l3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                <circle cx="8" cy="15" r="1.5" fill="white"/>
+                <circle cx="16" cy="15" r="1.5" fill="white"/>
+                <path d="M10 18.5c0-1 1-1.5 2-1.5s2 .5 2 1.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold gradient-text">BaxterBids</h1>
-              <p className="text-xs text-[var(--muted)]">Unified Bid Management</p>
+              <h1 className="text-xl font-bold gradient-text">LogisticoDS</h1>
+              <p className="text-xs text-[var(--muted)]">Discovery System</p>
             </div>
           </div>
 

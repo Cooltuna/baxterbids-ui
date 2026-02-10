@@ -131,7 +131,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">BaxterBids Overview</h1>
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">LogisticoDS Overview</h1>
           <p className="text-[var(--muted)] mt-1">Unified bid management across all sources</p>
         </div>
 
@@ -292,7 +292,7 @@ export default function Home() {
       <footer className="border-t border-[var(--border)] mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-[var(--muted)]">
-            BaxterBids &copy; 2024 &middot; Unified Bid Management
+            LogisticoDS &copy; 2024 &middot; Discovery System
           </p>
         </div>
       </footer>
