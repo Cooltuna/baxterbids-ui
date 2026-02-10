@@ -46,7 +46,8 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     setUpdatingBid(bid.id);
     try {
       // Toggle: if already Interested, set back to Open
-      const newStatus = bid.sheetStatus === 'Interested' ? 'Open' : 'Interested';
+      const isInterested = bid.sheetStatus?.toLowerCase() === 'interested';
+      const newStatus = isInterested ? 'Open' : 'Interested';
       await updateBidStatus(bid.id, newStatus);
       onBidUpdated?.();
     } catch (error) {
@@ -233,11 +234,11 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                         onClick={(e) => handleInterested(bid, e)}
                         disabled={updatingBid === bid.id}
                         className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
-                          bid.sheetStatus === 'Interested'
+                          bid.sheetStatus?.toLowerCase() === 'interested'
                             ? 'bg-[var(--success)]/20 text-[var(--success)]'
                             : 'hover:bg-[var(--success)]/10 text-[var(--muted)] hover:text-[var(--success)]'
                         }`}
-                        title={bid.sheetStatus === 'Interested' ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
+                        title={bid.sheetStatus?.toLowerCase() === 'interested' ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
                       >
                         {updatingBid === bid.id ? (
                           <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
