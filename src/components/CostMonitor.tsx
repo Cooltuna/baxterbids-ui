@@ -34,7 +34,7 @@ interface UsageData {
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://novelty-slim-utah-movements.trycloudflare.com'
+  ? 'https://belkin-viewed-ide-surrey.trycloudflare.com'
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
