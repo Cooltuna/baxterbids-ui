@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import CostMonitor from '@/components/CostMonitor';
 import { Bid, Source } from '@/types';
 
 interface SourceWithStats extends Source {
@@ -196,6 +197,11 @@ export default function Home() {
             <p className="text-4xl font-bold text-[var(--muted)]">{totalClosed}</p>
             <p className="text-sm text-[var(--muted)] mt-1">Closed</p>
           </div>
+        </div>
+
+        {/* Cost Monitor - Collapsible */}
+        <div className="mb-8 max-w-sm">
+          <CostMonitor />
         </div>
 
         {/* Source Cards */}
