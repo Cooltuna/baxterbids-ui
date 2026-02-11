@@ -771,6 +771,50 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                             </div>
                           </div>
                         ))}
+
+                        {/* Add Custom Vendor */}
+                        <div className="p-4 rounded-lg bg-[var(--background)] border-2 border-dashed border-[var(--border)]">
+                          <h5 className="font-semibold text-[var(--foreground)] mb-3">➕ Add Custom Vendor</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <input
+                              type="text"
+                              placeholder="Vendor Name *"
+                              id="custom-vendor-name"
+                              className="px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)]"
+                            />
+                            <input
+                              type="email"
+                              placeholder="Email Address"
+                              id="custom-vendor-email"
+                              className="px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)]"
+                            />
+                            <button
+                              onClick={() => {
+                                const nameInput = document.getElementById('custom-vendor-name') as HTMLInputElement;
+                                const emailInput = document.getElementById('custom-vendor-email') as HTMLInputElement;
+                                const name = nameInput?.value?.trim();
+                                const email = emailInput?.value?.trim();
+                                if (name) {
+                                  handleDraftRFQ({
+                                    name: name,
+                                    contact: email || '',
+                                    products: [],
+                                    can_supply: vendorMatrix.items.map((_, i) => i + 1)
+                                  } as Vendor & { can_supply: number[] });
+                                  // Clear inputs
+                                  if (nameInput) nameInput.value = '';
+                                  if (emailInput) emailInput.value = '';
+                                }
+                              }}
+                              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                            >
+                              Draft RFQ
+                            </button>
+                          </div>
+                          <p className="text-xs text-[var(--muted)] mt-2">
+                            Add a vendor not in the list above to generate an RFQ
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
