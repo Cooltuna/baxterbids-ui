@@ -26,6 +26,7 @@ async function fetchApi<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',  // Skip ngrok free tier warning
         ...options?.headers,
       },
     });

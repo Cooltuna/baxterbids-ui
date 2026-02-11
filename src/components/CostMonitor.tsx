@@ -49,7 +49,9 @@ export default function CostMonitor() {
   const fetchUsage = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/tokens/usage?days=${days}`);
+      const res = await fetch(`${API_BASE}/tokens/usage?days=${days}`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
       if (!res.ok) throw new Error('Failed to fetch usage');
       const data = await res.json();
       setUsage(data);
