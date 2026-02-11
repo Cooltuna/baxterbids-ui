@@ -10,6 +10,7 @@ export interface Bid {
   sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'No Bid';
   isAnalyzed?: boolean;
   source?: string;
+  description?: string;
 }
 
 export interface Source {

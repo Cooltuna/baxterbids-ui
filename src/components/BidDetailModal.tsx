@@ -301,7 +301,22 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
             {/* Summary Tab */}
             {activeTab === 'summary' && (
               <div>
-                {!summary ? (
+                {/* Show pre-populated description for email-based bids */}
+                {!summary && bid.description ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-[var(--accent)]">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Email-based bid - Pre-analyzed
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm">
+                        {bid.description}
+                      </div>
+                    </div>
+                  </div>
+                ) : !summary ? (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
                       <svg className="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

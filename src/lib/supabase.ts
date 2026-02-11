@@ -58,6 +58,7 @@ export interface Bid {
   estimated_value: string | null;
   category: string | null;
   url: string | null;
+  description: string | null;
   created_at: string;
   sources?: { name: string };
 }
@@ -147,6 +148,7 @@ export function transformBid(bid: Bid) {
     url: bid.url || '#',
     sheetStatus: bid.status,
     source: bid.sources?.name || 'Unknown',
+    description: bid.description || '',
   };
 }
 
