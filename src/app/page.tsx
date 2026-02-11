@@ -11,6 +11,7 @@ interface SourceWithStats extends Source {
     closingToday: number;
     closingThreeDays: number;
     unreviewed: number;
+    closed: number;
   };
 }
 
@@ -39,14 +40,36 @@ export default function Home() {
           setAllBids(bids);
           setTimestamp(bidsData.timestamp);
           
-          // Calculate urgent bids (closing within 3 days)
+          // Helper to check if expired
+          const checkExpired = (closeDate: string): boolean => {
+            if (!closeDate) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const close = new Date(closeDate);
+            close.setHours(0, 0, 0, 0);
+            const days = Math.ceil((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+            return days < 0;
+          };
+
+          // Helper to get days until close
+          const calcDaysUntilClose = (closeDate: string): number | null => {
+            if (!closeDate) return null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const close = new Date(closeDate);
+            close.setHours(0, 0, 0, 0);
+            return Math.ceil((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          };
+          
+          // Calculate urgent bids (closing within 3 days, NOT expired)
           const urgent = bids.filter((bid: Bid) => {
             if (!bid.closeDate) return false;
-            const days = getDaysUntilClose(bid.closeDate);
-            return days !== null && days <= 3;
+            if (checkExpired(bid.closeDate)) return false;
+            const days = calcDaysUntilClose(bid.closeDate);
+            return days !== null && days >= 0 && days <= 3;
           }).sort((a: Bid, b: Bid) => {
-            const daysA = getDaysUntilClose(a.closeDate) ?? 999;
-            const daysB = getDaysUntilClose(b.closeDate) ?? 999;
+            const daysA = calcDaysUntilClose(a.closeDate) ?? 999;
+            const daysB = calcDaysUntilClose(b.closeDate) ?? 999;
             return daysA - daysB;
           });
           setUrgentBids(urgent.slice(0, 10));
@@ -55,19 +78,23 @@ export default function Home() {
           if (sourcesData.success) {
             const sourcesWithStats = sourcesData.data.map((source: Source) => {
               const sourceBids = bids.filter((b: Bid) => b.source === source.name);
+              const activeSourceBids = sourceBids.filter((b: Bid) => !checkExpired(b.closeDate));
+              const closedSourceBids = sourceBids.filter((b: Bid) => checkExpired(b.closeDate));
+              
               return {
                 ...source,
                 stats: {
-                  total: sourceBids.length,
-                  closingToday: sourceBids.filter((b: Bid) => {
-                    const days = getDaysUntilClose(b.closeDate);
-                    return days !== null && days <= 0;
+                  total: activeSourceBids.length,
+                  closingToday: activeSourceBids.filter((b: Bid) => {
+                    const days = calcDaysUntilClose(b.closeDate);
+                    return days !== null && days === 0;
                   }).length,
-                  closingThreeDays: sourceBids.filter((b: Bid) => {
-                    const days = getDaysUntilClose(b.closeDate);
+                  closingThreeDays: activeSourceBids.filter((b: Bid) => {
+                    const days = calcDaysUntilClose(b.closeDate);
                     return days !== null && days > 0 && days <= 3;
                   }).length,
-                  unreviewed: sourceBids.filter((b: Bid) => !b.sheetStatus || b.sheetStatus === 'Open').length,
+                  unreviewed: activeSourceBids.filter((b: Bid) => !b.sheetStatus || b.sheetStatus === 'Open').length,
+                  closed: closedSourceBids.length,
                 }
               };
             });
@@ -89,8 +116,15 @@ export default function Home() {
   function getDaysUntilClose(closeDate: string): number | null {
     if (!closeDate) return null;
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const close = new Date(closeDate);
+    close.setHours(0, 0, 0, 0);
     return Math.ceil((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  function isExpired(closeDate: string): boolean {
+    const days = getDaysUntilClose(closeDate);
+    return days !== null && days < 0;
   }
 
   const handleRefresh = () => {
@@ -108,17 +142,22 @@ export default function Home() {
     return date.toLocaleTimeString();
   };
 
-  // Overall stats
-  const totalBids = allBids.length;
-  const totalClosingToday = allBids.filter(b => {
+  // Split active vs closed bids
+  const activeBids = allBids.filter(b => !isExpired(b.closeDate));
+  const closedBids = allBids.filter(b => isExpired(b.closeDate));
+
+  // Overall stats (based on active bids only)
+  const totalBids = activeBids.length;
+  const totalClosingToday = activeBids.filter(b => {
     const days = getDaysUntilClose(b.closeDate);
-    return days !== null && days <= 0;
+    return days !== null && days === 0;
   }).length;
-  const totalClosingThreeDays = allBids.filter(b => {
+  const totalClosingThreeDays = activeBids.filter(b => {
     const days = getDaysUntilClose(b.closeDate);
     return days !== null && days > 0 && days <= 3;
   }).length;
-  const totalUnreviewed = allBids.filter(b => !b.sheetStatus || b.sheetStatus === 'Open').length;
+  const totalUnreviewed = activeBids.filter(b => !b.sheetStatus || b.sheetStatus === 'Open').length;
+  const totalClosed = closedBids.length;
 
   return (
     <div className="min-h-screen">
@@ -136,7 +175,7 @@ export default function Home() {
         </div>
 
         {/* Overall Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
             <p className="text-4xl font-bold text-[var(--foreground)]">{totalBids}</p>
             <p className="text-sm text-[var(--muted)] mt-1">Total Active Bids</p>
@@ -152,6 +191,10 @@ export default function Home() {
           <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--accent)]/30">
             <p className="text-4xl font-bold text-[var(--accent)]">{totalUnreviewed}</p>
             <p className="text-sm text-[var(--muted)] mt-1">Unreviewed</p>
+          </div>
+          <div className="bg-[var(--card)] rounded-xl p-6 border border-[var(--muted)]/30">
+            <p className="text-4xl font-bold text-[var(--muted)]">{totalClosed}</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Closed</p>
           </div>
         </div>
 
@@ -185,7 +228,7 @@ export default function Home() {
                   </svg>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-2xl font-bold text-[var(--foreground)]">{source.stats.total}</p>
                     <p className="text-xs text-[var(--muted)]">Active</p>
@@ -193,6 +236,10 @@ export default function Home() {
                   <div>
                     <p className="text-2xl font-bold text-[var(--accent)]">{source.stats.unreviewed}</p>
                     <p className="text-xs text-[var(--muted)]">Unreviewed</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-[var(--muted)]">{source.stats.closed}</p>
+                    <p className="text-xs text-[var(--muted)]">Closed</p>
                   </div>
                 </div>
                 
