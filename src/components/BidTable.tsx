@@ -18,20 +18,27 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
+  const [hiddenBids, setHiddenBids] = useState<Set<string>>(new Set());
 
   const handleNoBid = async (bid: Bid, e: React.MouseEvent) => {
     e.stopPropagation();
     if (updatingBid) return;
     
-    // No confirmation - fast workflow for high volume
-    setUpdatingBid(bid.id);
+    // Instantly hide the bid (optimistic update)
+    setHiddenBids(prev => new Set([...prev, bid.id]));
+    
+    // Update in background
     try {
       await updateBidStatus(bid.id, 'No Bid');
       onBidUpdated?.();
     } catch (error) {
       console.error('Failed to update bid:', error);
-    } finally {
-      setUpdatingBid(null);
+      // On error, show the bid again
+      setHiddenBids(prev => {
+        const next = new Set(prev);
+        next.delete(bid.id);
+        return next;
+      });
     }
   };
 
@@ -60,6 +67,7 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
   };
 
   const filteredBids = bids
+    .filter(bid => !hiddenBids.has(bid.id)) // Instantly hide deleted bids
     .filter(bid => 
       bid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bid.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
