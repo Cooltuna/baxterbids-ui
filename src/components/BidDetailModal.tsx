@@ -30,6 +30,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [isLoadingCache, setIsLoadingCache] = useState(false);
   const [sentRFQs, setSentRFQs] = useState<RFQRecord[]>([]);
   const [isLoadingRFQs, setIsLoadingRFQs] = useState(false);
+  const [previewRFQ, setPreviewRFQ] = useState<RFQRecord | null>(null);
 
   // Check API availability on mount
   useEffect(() => {
@@ -890,6 +891,12 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                                   </details>
                                 )}
                                 <button
+                                  onClick={() => setPreviewRFQ(rfq)}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                                >
+                                  👁️ Preview
+                                </button>
+                                <button
                                   onClick={() => {
                                     const content = `RFQ Response - ${rfq.vendor_name}
 =====================================
@@ -1061,6 +1068,134 @@ ${rfq.notes || 'No details available'}
             setActiveTab('rfq');
           }}
         />
+      )}
+
+      {/* RFQ Response Preview Modal */}
+      {previewRFQ && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setPreviewRFQ(null)}
+          />
+          <div className="relative bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">
+                  Quote from {previewRFQ.vendor_name}
+                </h3>
+                <p className="text-sm text-[var(--muted)]">Bid: {previewRFQ.bid_id}</p>
+              </div>
+              <button
+                onClick={() => setPreviewRFQ(null)}
+                className="p-2 rounded-lg hover:bg-[var(--background)] transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Quote Total */}
+              <div className="p-4 rounded-xl bg-[var(--success)]/10 border border-[var(--success)]/30">
+                <p className="text-sm text-[var(--muted)]">Quoted Total</p>
+                <p className="text-3xl font-bold text-[var(--success)]">
+                  ${previewRFQ.quoted_total?.toLocaleString() || 'N/A'}
+                </p>
+              </div>
+
+              {/* Vendor Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-wider">Vendor</p>
+                  <p className="font-medium text-[var(--foreground)]">{previewRFQ.vendor_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-wider">Email</p>
+                  <p className="font-medium text-[var(--foreground)]">{previewRFQ.vendor_email || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-wider">RFQ Sent</p>
+                  <p className="font-medium text-[var(--foreground)]">{new Date(previewRFQ.sent_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-wider">Response Received</p>
+                  <p className="font-medium text-[var(--foreground)]">
+                    {previewRFQ.response_received_at ? new Date(previewRFQ.response_received_at).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Items Requested */}
+              <div>
+                <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Items Requested</p>
+                <div className="p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+                  <ul className="space-y-1 text-sm">
+                    {JSON.parse(previewRFQ.items_json || '[]').map((item: string, i: number) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-[var(--muted)]">{i + 1}.</span>
+                        <span className="text-[var(--foreground)]">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Quote Details */}
+              {previewRFQ.notes && (
+                <div>
+                  <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">Quote Details</p>
+                  <div className="p-3 rounded-lg bg-[var(--background)] border border-[var(--border)]">
+                    <p className="text-sm text-[var(--foreground)] whitespace-pre-wrap">{previewRFQ.notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border)]">
+              <button
+                onClick={() => {
+                  const content = `RFQ Response - ${previewRFQ.vendor_name}
+=====================================
+Bid ID: ${previewRFQ.bid_id}
+Vendor: ${previewRFQ.vendor_name}
+Email: ${previewRFQ.vendor_email || 'N/A'}
+
+Sent: ${new Date(previewRFQ.sent_at).toLocaleString()}
+Response Received: ${previewRFQ.response_received_at ? new Date(previewRFQ.response_received_at).toLocaleString() : 'N/A'}
+
+QUOTED TOTAL: $${previewRFQ.quoted_total?.toLocaleString() || 'N/A'}
+
+Items Requested:
+${JSON.parse(previewRFQ.items_json || '[]').map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}
+
+Quote Details:
+${previewRFQ.notes || 'No details available'}
+`;
+                  const blob = new Blob([content], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `RFQ_Response_${previewRFQ.vendor_name.replace(/\s+/g, '_')}_${previewRFQ.bid_id}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                ⬇️ Download
+              </button>
+              <button
+                onClick={() => setPreviewRFQ(null)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
