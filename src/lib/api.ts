@@ -6,7 +6,7 @@
 import { BidSummary, VendorSearchResult, RFQDraft, LineItem } from '@/types';
 
 // API base URL - local dev or can be configured via env
-const API_BASE = process.env.NEXT_PUBLIC_BAXTERBIDS_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
