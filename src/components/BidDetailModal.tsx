@@ -31,6 +31,7 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [sentRFQs, setSentRFQs] = useState<RFQRecord[]>([]);
   const [isLoadingRFQs, setIsLoadingRFQs] = useState(false);
   const [previewRFQ, setPreviewRFQ] = useState<RFQRecord | null>(null);
+  const [showBidSummary, setShowBidSummary] = useState(false);
 
   // Check API availability on mount
   useEffect(() => {
@@ -809,6 +810,26 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
             {/* RFQ Tab */}
             {activeTab === 'rfq' && (
               <div className="space-y-6">
+                {/* Bid Summary Button - Show when we have responses */}
+                {sentRFQs.filter(r => r.status === 'responded').length > 0 && (
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-[var(--accent)]/10 to-[var(--success)]/10 border border-[var(--accent)]/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-[var(--foreground)]">📊 Ready to Build Your Bid?</h4>
+                        <p className="text-sm text-[var(--muted)] mt-1">
+                          {sentRFQs.filter(r => r.status === 'responded').length} vendor response(s) received
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowBidSummary(true)}
+                        className="px-4 py-2 bg-[var(--accent)] text-white font-medium rounded-lg hover:bg-[var(--accent)]/90 transition-colors"
+                      >
+                        📋 Bid Summary & Analysis
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Sent RFQs Log */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -1068,6 +1089,248 @@ ${rfq.notes || 'No details available'}
             setActiveTab('rfq');
           }}
         />
+      )}
+
+      {/* Bid Summary & Analysis Modal */}
+      {showBidSummary && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowBidSummary(false)}
+          />
+          <div className="relative bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--success)]/10">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--foreground)]">
+                  📊 Bid Summary & Analysis
+                </h3>
+                <p className="text-sm text-[var(--muted)]">{bid?.title}</p>
+              </div>
+              <button
+                onClick={() => setShowBidSummary(false)}
+                className="p-2 rounded-lg hover:bg-[var(--background)] transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] text-center">
+                  <p className="text-3xl font-bold text-[var(--foreground)]">
+                    {sentRFQs.filter(r => r.status === 'responded').length}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">Responses</p>
+                </div>
+                <div className="p-4 rounded-xl bg-[var(--success)]/10 border border-[var(--success)]/30 text-center">
+                  <p className="text-3xl font-bold text-[var(--success)]">
+                    ${Math.min(...sentRFQs.filter(r => r.quoted_total).map(r => r.quoted_total!)).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">Lowest Quote</p>
+                </div>
+                <div className="p-4 rounded-xl bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-center">
+                  <p className="text-3xl font-bold text-[var(--warning)]">
+                    ${Math.max(...sentRFQs.filter(r => r.quoted_total).map(r => r.quoted_total!)).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">Highest Quote</p>
+                </div>
+              </div>
+
+              {/* Vendor Comparison Table */}
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">
+                  💰 Vendor Quote Comparison
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border)]">
+                        <th className="text-left py-3 px-4 font-semibold text-[var(--foreground)]">Vendor</th>
+                        <th className="text-right py-3 px-4 font-semibold text-[var(--foreground)]">Quoted Total</th>
+                        <th className="text-right py-3 px-4 font-semibold text-[var(--foreground)]">vs Lowest</th>
+                        <th className="text-center py-3 px-4 font-semibold text-[var(--foreground)]">Response Time</th>
+                        <th className="text-center py-3 px-4 font-semibold text-[var(--foreground)]">Recommendation</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sentRFQs
+                        .filter(r => r.status === 'responded' && r.quoted_total)
+                        .sort((a, b) => (a.quoted_total || 0) - (b.quoted_total || 0))
+                        .map((rfq, idx) => {
+                          const lowestQuote = Math.min(...sentRFQs.filter(r => r.quoted_total).map(r => r.quoted_total!));
+                          const diff = ((rfq.quoted_total! - lowestQuote) / lowestQuote * 100);
+                          const responseTime = rfq.response_received_at && rfq.sent_at 
+                            ? Math.round((new Date(rfq.response_received_at).getTime() - new Date(rfq.sent_at).getTime()) / (1000 * 60 * 60))
+                            : null;
+                          
+                          return (
+                            <tr key={rfq.id} className={`border-b border-[var(--border)] ${idx === 0 ? 'bg-[var(--success)]/5' : ''}`}>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  {idx === 0 && <span className="text-[var(--success)]">🏆</span>}
+                                  <span className="font-medium text-[var(--foreground)]">{rfq.vendor_name}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-right font-semibold text-[var(--foreground)]">
+                                ${rfq.quoted_total?.toLocaleString()}
+                              </td>
+                              <td className="py-3 px-4 text-right">
+                                {idx === 0 ? (
+                                  <span className="text-[var(--success)] font-medium">Lowest</span>
+                                ) : (
+                                  <span className="text-[var(--warning)]">+{diff.toFixed(1)}%</span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-center text-[var(--muted)]">
+                                {responseTime !== null ? `${responseTime}h` : 'N/A'}
+                              </td>
+                              <td className="py-3 px-4 text-center">
+                                {idx === 0 ? (
+                                  <span className="px-2 py-1 text-xs rounded-full bg-[var(--success)]/20 text-[var(--success)] font-medium">
+                                    Best Price
+                                  </span>
+                                ) : diff < 5 ? (
+                                  <span className="px-2 py-1 text-xs rounded-full bg-[var(--warning)]/20 text-[var(--warning)] font-medium">
+                                    Competitive
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 text-xs rounded-full bg-[var(--muted)]/20 text-[var(--muted)] font-medium">
+                                    Higher
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Analysis Summary */}
+              <div className="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+                <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">📝 Analysis Summary</h4>
+                {(() => {
+                  const responses = sentRFQs.filter(r => r.status === 'responded' && r.quoted_total);
+                  const lowest = responses.length > 0 ? responses.reduce((a, b) => a.quoted_total! < b.quoted_total! ? a : b) : null;
+                  const avg = responses.length > 0 ? responses.reduce((sum, r) => sum + r.quoted_total!, 0) / responses.length : 0;
+                  
+                  return (
+                    <div className="space-y-2 text-sm text-[var(--muted)]">
+                      <p>• Received <strong className="text-[var(--foreground)]">{responses.length}</strong> vendor quote(s)</p>
+                      {lowest && (
+                        <p>• <strong className="text-[var(--success)]">{lowest.vendor_name}</strong> offers the lowest price at <strong className="text-[var(--success)]">${lowest.quoted_total?.toLocaleString()}</strong></p>
+                      )}
+                      <p>• Average quote: <strong className="text-[var(--foreground)]">${avg.toLocaleString(undefined, {maximumFractionDigits: 2})}</strong></p>
+                      {lowest && avg > 0 && (
+                        <p>• Lowest quote is <strong className="text-[var(--success)]">{((avg - lowest.quoted_total!) / avg * 100).toFixed(1)}%</strong> below average</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Bid Recommendation */}
+              <div className="p-4 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/30">
+                <h4 className="text-sm font-semibold text-[var(--foreground)] mb-3">💡 Bid Recommendation</h4>
+                {(() => {
+                  const responses = sentRFQs.filter(r => r.status === 'responded' && r.quoted_total);
+                  const lowest = responses.length > 0 ? Math.min(...responses.map(r => r.quoted_total!)) : 0;
+                  const markup15 = lowest * 1.15;
+                  const markup20 = lowest * 1.20;
+                  const markup25 = lowest * 1.25;
+                  
+                  return (
+                    <div className="space-y-3">
+                      <p className="text-sm text-[var(--muted)]">Based on lowest vendor quote of <strong className="text-[var(--foreground)]">${lowest.toLocaleString()}</strong>:</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-center">
+                          <p className="text-xs text-[var(--muted)]">15% Markup</p>
+                          <p className="text-lg font-bold text-[var(--foreground)]">${markup15.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-[var(--accent)]/20 border border-[var(--accent)]/30 text-center">
+                          <p className="text-xs text-[var(--accent)]">20% Markup ⭐</p>
+                          <p className="text-lg font-bold text-[var(--accent)]">${markup20.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                        </div>
+                        <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-center">
+                          <p className="text-xs text-[var(--muted)]">25% Markup</p>
+                          <p className="text-lg font-bold text-[var(--foreground)]">${markup25.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border)]">
+              <button
+                onClick={() => {
+                  const responses = sentRFQs.filter(r => r.status === 'responded' && r.quoted_total);
+                  const lowest = responses.length > 0 ? responses.reduce((a, b) => a.quoted_total! < b.quoted_total! ? a : b) : null;
+                  const avg = responses.length > 0 ? responses.reduce((sum, r) => sum + r.quoted_total!, 0) / responses.length : 0;
+                  
+                  const content = `BID SUMMARY & ANALYSIS
+=====================================
+Bid: ${bid?.title}
+Bid ID: ${bid?.id}
+Generated: ${new Date().toLocaleString()}
+
+VENDOR QUOTES
+-------------
+${responses.sort((a, b) => (a.quoted_total || 0) - (b.quoted_total || 0)).map((r, i) => 
+  `${i + 1}. ${r.vendor_name}: $${r.quoted_total?.toLocaleString()}${i === 0 ? ' (LOWEST)' : ''}`
+).join('\n')}
+
+ANALYSIS
+--------
+• Total Responses: ${responses.length}
+• Lowest Quote: $${lowest?.quoted_total?.toLocaleString()} (${lowest?.vendor_name})
+• Highest Quote: $${Math.max(...responses.map(r => r.quoted_total!)).toLocaleString()}
+• Average Quote: $${avg.toLocaleString(undefined, {maximumFractionDigits: 2})}
+
+BID RECOMMENDATIONS
+-------------------
+• 15% Markup: $${(lowest?.quoted_total! * 1.15).toLocaleString(undefined, {maximumFractionDigits: 2})}
+• 20% Markup: $${(lowest?.quoted_total! * 1.20).toLocaleString(undefined, {maximumFractionDigits: 2})}
+• 25% Markup: $${(lowest?.quoted_total! * 1.25).toLocaleString(undefined, {maximumFractionDigits: 2})}
+
+VENDOR DETAILS
+--------------
+${responses.map(r => `
+${r.vendor_name}
+  Quoted: $${r.quoted_total?.toLocaleString()}
+  Email: ${r.vendor_email}
+  Notes: ${r.notes || 'N/A'}
+`).join('\n')}
+`;
+                  const blob = new Blob([content], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `Bid_Summary_${bid?.id}_${new Date().toISOString().split('T')[0]}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                ⬇️ Export Analysis
+              </button>
+              <button
+                onClick={() => setShowBidSummary(false)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* RFQ Response Preview Modal */}
