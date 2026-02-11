@@ -45,8 +45,8 @@ export default function SourceDashboard() {
       // Approximate - would need created_at field for accuracy
       return b.status === 'active';
     }).length,
-    reviewed: bids.filter(b => b.sheetStatus && b.sheetStatus !== 'Open').length,
-    interested: bids.filter(b => b.sheetStatus === 'Interested').length,
+    reviewed: bids.filter(b => b.sheetStatus && b.sheetStatus.toLowerCase() !== 'open').length,
+    interested: bids.filter(b => b.sheetStatus?.toLowerCase() === 'interested').length,
   };
 
   function getDaysUntilClose(closeDate: string): number | null {
@@ -93,7 +93,10 @@ export default function SourceDashboard() {
   const handleRefresh = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/bids?source=${params.source}`);
+      // Add cache-busting timestamp to bypass Next.js revalidation
+      const res = await fetch(`/api/bids?source=${params.source}&_t=${Date.now()}`, {
+        cache: 'no-store'
+      });
       const data = await res.json();
       if (data.success) {
         setBids(data.data);
@@ -120,8 +123,8 @@ export default function SourceDashboard() {
   // Filter bids by status
   const filteredBids = bids.filter(bid => {
     if (statusFilter === 'all') return true;
-    if (statusFilter === 'unreviewed') return !bid.sheetStatus || bid.sheetStatus === 'Open';
-    if (statusFilter === 'interested') return bid.sheetStatus === 'Interested';
+    if (statusFilter === 'unreviewed') return !bid.sheetStatus || bid.sheetStatus.toLowerCase() === 'open';
+    if (statusFilter === 'interested') return bid.sheetStatus?.toLowerCase() === 'interested';
     if (statusFilter === 'closing-soon') {
       const days = getDaysUntilClose(bid.closeDate);
       return days !== null && days <= 3;

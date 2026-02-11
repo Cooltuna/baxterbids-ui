@@ -9,7 +9,7 @@ interface BidTableProps {
   searchQuery: string;
   isLoading?: boolean;
   onSelectBid?: (bid: Bid) => void;
-  onBidUpdated?: () => void;
+  onBidUpdated?: (bidId?: string, newStatus?: string) => void;
   rfqSummary?: RFQSummary;
   showSource?: boolean;
 }
@@ -19,6 +19,8 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
   const [hiddenBids, setHiddenBids] = useState<Set<string>>(new Set());
+  // Track local status overrides for optimistic updates
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
 
   const handleNoBid = async (bid: Bid, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,11 +48,16 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     e.stopPropagation();
     if (updatingBid) return;
     
+    // Get current status from local override or original
+    const currentStatus = localStatuses[bid.id] || bid.sheetStatus;
+    const isInterested = currentStatus?.toLowerCase() === 'interested';
+    const newStatus = isInterested ? 'Open' : 'Interested';
+    
+    // Optimistic update - immediately show the new status
+    setLocalStatuses(prev => ({ ...prev, [bid.id]: newStatus.toLowerCase() }));
     setUpdatingBid(bid.id);
+    
     try {
-      // Toggle: if already Interested, set back to Open
-      const isInterested = bid.sheetStatus?.toLowerCase() === 'interested';
-      const newStatus = isInterested ? 'Open' : 'Interested';
       await updateBidStatus(bid.id, newStatus);
       
       // If marking as Interested, open the detail modal to trigger analysis
@@ -58,9 +65,15 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
         onSelectBid(bid);
       }
       
-      onBidUpdated?.();
+      onBidUpdated?.(bid.id, newStatus);
     } catch (error) {
       console.error('Failed to update bid:', error);
+      // Revert optimistic update on error
+      setLocalStatuses(prev => {
+        const next = { ...prev };
+        delete next[bid.id];
+        return next;
+      });
     } finally {
       setUpdatingBid(null);
     }
@@ -239,15 +252,19 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       {/* Interested Toggle */}
+                      {(() => {
+                        const effectiveStatus = localStatuses[bid.id] || bid.sheetStatus;
+                        const isInterested = effectiveStatus?.toLowerCase() === 'interested';
+                        return (
                       <button 
                         onClick={(e) => handleInterested(bid, e)}
                         disabled={updatingBid === bid.id}
                         className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
-                          bid.sheetStatus?.toLowerCase() === 'interested'
+                          isInterested
                             ? 'bg-[var(--success)]/20 text-[var(--success)]'
                             : 'hover:bg-[var(--success)]/10 text-[var(--muted)] hover:text-[var(--success)]'
                         }`}
-                        title={bid.sheetStatus?.toLowerCase() === 'interested' ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
+                        title={isInterested ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
                       >
                         {updatingBid === bid.id ? (
                           <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -260,6 +277,8 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                           </svg>
                         )}
                       </button>
+                        );
+                      })()}
                       {/* Analyze */}
                       <button 
                         onClick={() => onSelectBid?.(bid)}
