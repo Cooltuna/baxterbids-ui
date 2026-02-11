@@ -34,7 +34,7 @@ interface UsageData {
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://shed-wyoming-enough-trackback.trycloudflare.com'
+  ? 'https://novelty-slim-utah-movements.trycloudflare.com'
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
