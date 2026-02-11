@@ -73,8 +73,10 @@ export default function RFQDraftModal({
   };
 
   const handleOpenInEmail = () => {
-    const mailtoLink = `mailto:${encodeURIComponent(vendorEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink, '_blank');
+    // Don't encode the email address itself, just subject and body
+    const mailtoLink = `mailto:${vendorEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // Use location.href instead of window.open for mailto links
+    window.location.href = mailtoLink;
   };
 
   const handleSend = async () => {
