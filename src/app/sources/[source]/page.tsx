@@ -30,31 +30,42 @@ export default function SourceDashboard() {
   const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
-  // Calculate stats
-  const stats: SourceStats = {
-    total: bids.length,
-    closingToday: bids.filter(b => {
-      const days = getDaysUntilClose(b.closeDate);
-      return days !== null && days <= 0;
-    }).length,
-    closingThreeDays: bids.filter(b => {
-      const days = getDaysUntilClose(b.closeDate);
-      return days !== null && days > 0 && days <= 3;
-    }).length,
-    postedToday: bids.filter(b => {
-      // Approximate - would need created_at field for accuracy
-      return b.status === 'active';
-    }).length,
-    reviewed: bids.filter(b => b.sheetStatus && b.sheetStatus.toLowerCase() !== 'open').length,
-    interested: bids.filter(b => b.sheetStatus?.toLowerCase() === 'interested').length,
-  };
-
   function getDaysUntilClose(closeDate: string): number | null {
     if (!closeDate) return null;
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Compare dates only, not times
     const close = new Date(closeDate);
+    close.setHours(0, 0, 0, 0);
     return Math.ceil((close.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   }
+
+  function isExpired(closeDate: string): boolean {
+    const days = getDaysUntilClose(closeDate);
+    return days !== null && days < 0;
+  }
+
+  // Split bids into active and closed
+  const activeBids = bids.filter(b => !isExpired(b.closeDate));
+  const closedBids = bids.filter(b => isExpired(b.closeDate));
+
+  // Calculate stats (based on active bids only)
+  const stats: SourceStats = {
+    total: activeBids.length,
+    closingToday: activeBids.filter(b => {
+      const days = getDaysUntilClose(b.closeDate);
+      return days !== null && days === 0;
+    }).length,
+    closingThreeDays: activeBids.filter(b => {
+      const days = getDaysUntilClose(b.closeDate);
+      return days !== null && days > 0 && days <= 3;
+    }).length,
+    postedToday: activeBids.filter(b => {
+      // Approximate - would need created_at field for accuracy
+      return b.status === 'active';
+    }).length,
+    reviewed: activeBids.filter(b => b.sheetStatus && b.sheetStatus.toLowerCase() !== 'open').length,
+    interested: activeBids.filter(b => b.sheetStatus?.toLowerCase() === 'interested').length,
+  };
 
   // Fetch bids for this source
   useEffect(() => {
@@ -121,16 +132,22 @@ export default function SourceDashboard() {
   };
 
   // Filter bids by status
-  const filteredBids = bids.filter(bid => {
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'unreviewed') return !bid.sheetStatus || bid.sheetStatus.toLowerCase() === 'open';
-    if (statusFilter === 'interested') return bid.sheetStatus?.toLowerCase() === 'interested';
+  const filteredBids = (() => {
+    // Closed tab shows expired bids
+    if (statusFilter === 'closed') return closedBids;
+    
+    // All other tabs filter from active bids only
+    if (statusFilter === 'all') return activeBids;
+    if (statusFilter === 'unreviewed') return activeBids.filter(b => !b.sheetStatus || b.sheetStatus.toLowerCase() === 'open');
+    if (statusFilter === 'interested') return activeBids.filter(b => b.sheetStatus?.toLowerCase() === 'interested');
     if (statusFilter === 'closing-soon') {
-      const days = getDaysUntilClose(bid.closeDate);
-      return days !== null && days <= 3;
+      return activeBids.filter(b => {
+        const days = getDaysUntilClose(b.closeDate);
+        return days !== null && days >= 0 && days <= 3;
+      });
     }
-    return true;
-  });
+    return activeBids;
+  })();
 
   return (
     <div className="min-h-screen">
@@ -184,19 +201,22 @@ export default function SourceDashboard() {
 
         {/* Filter Tabs & Search */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {[
-              { id: 'all', label: 'All', count: bids.length },
+              { id: 'all', label: 'All Active', count: activeBids.length },
               { id: 'unreviewed', label: 'Unreviewed', count: stats.total - stats.reviewed },
               { id: 'interested', label: 'Interested', count: stats.interested },
               { id: 'closing-soon', label: 'Closing Soon', count: stats.closingThreeDays + stats.closingToday },
+              { id: 'closed', label: 'Closed', count: closedBids.length },
             ].map(filter => (
               <button
                 key={filter.id}
                 onClick={() => setStatusFilter(filter.id)}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                   statusFilter === filter.id
-                    ? 'bg-[var(--accent)] text-white'
+                    ? filter.id === 'closed' 
+                      ? 'bg-[var(--muted)] text-white'
+                      : 'bg-[var(--accent)] text-white'
                     : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
                 }`}
               >
