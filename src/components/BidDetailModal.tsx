@@ -858,8 +858,13 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                                 Sent: {new Date(rfq.sent_at).toLocaleString()}
                               </p>
                               {rfq.quoted_total && (
-                                <p className="text-sm text-[var(--success)] mt-1">
-                                  Quote: ${rfq.quoted_total.toLocaleString()}
+                                <p className="text-sm font-semibold text-[var(--success)] mt-2">
+                                  💰 Quote: ${rfq.quoted_total.toLocaleString()}
+                                </p>
+                              )}
+                              {rfq.response_received_at && (
+                                <p className="text-xs text-[var(--muted)] mt-1">
+                                  Response received: {new Date(rfq.response_received_at).toLocaleString()}
                                 </p>
                               )}
                             </div>
@@ -869,6 +874,18 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                               </p>
                             </div>
                           </div>
+                          
+                          {/* Response Details - Expandable for responded RFQs */}
+                          {rfq.status === 'responded' && rfq.notes && (
+                            <details className="mt-3 pt-3 border-t border-[var(--border)]">
+                              <summary className="cursor-pointer text-sm font-medium text-[var(--accent)] hover:underline">
+                                📋 View Quote Details
+                              </summary>
+                              <div className="mt-2 p-3 bg-[var(--background)] rounded-lg text-sm">
+                                <p className="whitespace-pre-wrap text-[var(--foreground)]">{rfq.notes}</p>
+                              </div>
+                            </details>
+                          )}
                         </div>
                       ))}
                     </div>
