@@ -876,15 +876,53 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                           </div>
                           
                           {/* Response Details - Expandable for responded RFQs */}
-                          {rfq.status === 'responded' && rfq.notes && (
-                            <details className="mt-3 pt-3 border-t border-[var(--border)]">
-                              <summary className="cursor-pointer text-sm font-medium text-[var(--accent)] hover:underline">
-                                📋 View Quote Details
-                              </summary>
-                              <div className="mt-2 p-3 bg-[var(--background)] rounded-lg text-sm">
-                                <p className="whitespace-pre-wrap text-[var(--foreground)]">{rfq.notes}</p>
+                          {rfq.status === 'responded' && (
+                            <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                              <div className="flex items-center gap-3">
+                                {rfq.notes && (
+                                  <details className="flex-1">
+                                    <summary className="cursor-pointer text-sm font-medium text-[var(--accent)] hover:underline">
+                                      📋 View Quote Details
+                                    </summary>
+                                    <div className="mt-2 p-3 bg-[var(--background)] rounded-lg text-sm">
+                                      <p className="whitespace-pre-wrap text-[var(--foreground)]">{rfq.notes}</p>
+                                    </div>
+                                  </details>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    const content = `RFQ Response - ${rfq.vendor_name}
+=====================================
+Bid ID: ${rfq.bid_id}
+Vendor: ${rfq.vendor_name}
+Email: ${rfq.vendor_email || 'N/A'}
+Status: ${rfq.status}
+
+Sent: ${new Date(rfq.sent_at).toLocaleString()}
+Response Received: ${rfq.response_received_at ? new Date(rfq.response_received_at).toLocaleString() : 'N/A'}
+
+QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
+
+Items Requested:
+${JSON.parse(rfq.items_json || '[]').map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}
+
+Quote Details:
+${rfq.notes || 'No details available'}
+`;
+                                    const blob = new Blob([content], { type: 'text/plain' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `RFQ_Response_${rfq.vendor_name.replace(/\s+/g, '_')}_${rfq.bid_id}.txt`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+                                >
+                                  ⬇️ Download
+                                </button>
                               </div>
-                            </details>
+                            </div>
                           )}
                         </div>
                       ))}
