@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchBids, fetchBidsBySource, transformBid } from '@/lib/supabase';
 
-export const revalidate = 30; // Revalidate every 30 seconds
+export const dynamic = 'force-dynamic'; // Required for request.url usage
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
