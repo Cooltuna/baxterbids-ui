@@ -743,18 +743,32 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                                   </a>
                                 )}
                               </div>
-                              <button 
-                                onClick={() => handleDraftRFQ({
-                                  name: vendor.name,
-                                  website: vendor.website,
-                                  contact: vendor.contact,
-                                  products: [],
-                                  can_supply: vendor.can_supply
-                                } as Vendor & { can_supply: number[] })}
-                                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
-                              >
-                                Draft RFQ
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleDraftRFQ({
+                                    name: vendor.name,
+                                    website: vendor.website,
+                                    contact: vendor.contact,
+                                    products: [],
+                                    can_supply: vendor.can_supply
+                                  } as Vendor & { can_supply: number[] })}
+                                  className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                                >
+                                  Draft RFQ
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setVendorMatrix(prev => prev ? {
+                                      ...prev,
+                                      vendors: prev.vendors.filter((_, i) => i !== idx)
+                                    } : null);
+                                  }}
+                                  className="px-2 py-1.5 text-xs font-medium rounded-lg bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20 transition-colors"
+                                  title="Remove vendor"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
                             {vendor.contact && (
                               <p className="text-sm text-[var(--foreground)] mt-2">📧 {vendor.contact}</p>
