@@ -83,6 +83,7 @@ export interface Source {
 export async function fetchBids(): Promise<Bid[]> {
   const bids = await supabaseQuery<Bid>('bids', {
     select: '*,sources(name)',
+    filter: 'or=(dismissed.is.null,dismissed.eq.false)',
     order: 'close_date.asc.nullslast',
   });
   
@@ -99,7 +100,7 @@ export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
   
   const bids = await supabaseQuery<Bid>('bids', {
     select: '*',
-    filter: `source_id=eq.${sources[0].id}`,
+    filter: `source_id=eq.${sources[0].id}&or=(dismissed.is.null,dismissed.eq.false)`,
     order: 'close_date.asc.nullslast',
   });
   
@@ -176,4 +177,24 @@ export function transformRFQ(rfq: any) {
     receivedDate: rfq.received_date?.split('T')[0] || '',
     quoteAmount: rfq.quote_amount ? `$${rfq.quote_amount.toLocaleString()}` : '',
   };
+}
+
+/**
+ * Dismiss a bid (hides it from the dashboard without deleting)
+ */
+export async function dismissBid(bidId: string, sourceId: string): Promise<boolean> {
+  const url = `${SUPABASE_URL}/rest/v1/bids?external_id=eq.${encodeURIComponent(bidId)}&source_id=eq.${sourceId}`;
+  
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ dismissed: true }),
+  });
+  
+  return response.ok;
 }

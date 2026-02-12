@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bid } from '@/types';
-import { updateBidStatus, RFQSummary } from '@/lib/api';
+import { updateBidStatus, RFQSummary, dismissBid } from '@/lib/api';
 
 interface BidTableProps {
   bids: Bid[];
@@ -29,8 +29,11 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     // Instantly hide the bid (optimistic update)
     setHiddenBids(prev => new Set([...prev, bid.id]));
     
-    // Update in background
+    // Update in background - both dismiss and set status to No Bid
     try {
+      // Dismiss prevents scraper from re-adding
+      await dismissBid(bid.id);
+      // Also update status for backwards compatibility
       await updateBidStatus(bid.id, 'No Bid');
       onBidUpdated?.();
     } catch (error) {

@@ -259,4 +259,16 @@ export async function fetchBidDetails(
   });
 }
 
+/**
+ * Dismiss a bid (hides it from dashboard, prevents scraper from re-adding)
+ */
+export async function dismissBid(bidId: string, sourceId?: string): Promise<{ success: boolean }> {
+  const response = await fetch('/api/bids/dismiss', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bidId, sourceId }),
+  });
+  return response.json();
+}
+
 export { ApiError };
