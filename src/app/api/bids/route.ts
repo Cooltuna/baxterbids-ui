@@ -12,9 +12,14 @@ export async function GET(request: NextRequest) {
     // Fetch bids - either all or by source
     let bids;
     if (sourceFilter) {
-      // Capitalize first letter to match source name in DB
-      const sourceName = sourceFilter.charAt(0).toUpperCase() + sourceFilter.slice(1);
-      bids = await fetchBidsBySource(sourceName);
+      // Try title case first, then uppercase (for acronyms like CACI)
+      const titleCase = sourceFilter.charAt(0).toUpperCase() + sourceFilter.slice(1);
+      bids = await fetchBidsBySource(titleCase);
+      
+      // If no results, try uppercase (handles CACI, SAM, etc.)
+      if (bids.length === 0) {
+        bids = await fetchBidsBySource(sourceFilter.toUpperCase());
+      }
     } else {
       bids = await fetchBids();
     }
