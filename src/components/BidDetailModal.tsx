@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bid, BidSummary, LineItem, Vendor } from '@/types';
+import { Bid, BidSummary, LineItem, Vendor, BidDocument } from '@/types';
 import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, getBidRFQs, fetchBidDetails, VendorMatrixResult, RFQRecord } from '@/lib/api';
+import { getDocumentUrl } from '@/lib/supabase';
 import RFQDraftModal from './RFQDraftModal';
 import CustomVendorInput from './CustomVendorInput';
 
@@ -11,7 +12,43 @@ interface BidDetailModalProps {
   onClose: () => void;
 }
 
-type Tab = 'summary' | 'bom' | 'vendors' | 'rfq';
+// Helper function to get file icon based on type
+function getFileIcon(fileType: string) {
+  const type = fileType?.toLowerCase() || '';
+  
+  if (type === 'pdf') {
+    return (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zm-2.5 9.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/>
+      </svg>
+    );
+  }
+  
+  if (type === 'xlsx' || type === 'xls') {
+    return (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM9 19H7v-2h2v2zm0-4H7v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm4 4h-2v-2h2v2zm0-4h-2v-2h2v2zm-1-5V4l5 5h-5z"/>
+      </svg>
+    );
+  }
+  
+  if (type === 'docx' || type === 'doc') {
+    return (
+      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM8 12h8v2H8v-2zm0 4h8v2H8v-2z"/>
+      </svg>
+    );
+  }
+  
+  // Default file icon
+  return (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/>
+    </svg>
+  );
+}
+
+type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq';
 
 export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
@@ -32,6 +69,8 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
   const [isLoadingRFQs, setIsLoadingRFQs] = useState(false);
   const [previewRFQ, setPreviewRFQ] = useState<RFQRecord | null>(null);
   const [showBidSummary, setShowBidSummary] = useState(false);
+  const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({});
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
 
   // Check API availability on mount
   useEffect(() => {
@@ -267,25 +306,65 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
           )}
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 px-6 pt-4 flex-shrink-0">
-            {(['summary', 'bom', 'vendors', 'rfq'] as Tab[]).map((tab) => (
+          <div className="flex items-center gap-1 px-6 pt-4 flex-shrink-0 overflow-x-auto">
+            {/* Summary tab - always visible */}
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'summary'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+              }`}
+            >
+              📋 Summary
+            </button>
+            
+            {/* Documents tab - only show if bid has documents */}
+            {bid.documents && bid.documents.length > 0 && (
+              <button
+                onClick={async () => {
+                  setActiveTab('docs');
+                  // Load document URLs if not already loaded
+                  if (Object.keys(documentUrls).length === 0 && bid.documents) {
+                    setIsLoadingDocs(true);
+                    const urls: Record<string, string> = {};
+                    for (const doc of bid.documents) {
+                      if (doc.storage_path) {
+                        const url = await getDocumentUrl(doc.storage_path);
+                        if (url) urls[doc.storage_path] = url;
+                      }
+                    }
+                    setDocumentUrls(urls);
+                    setIsLoadingDocs(false);
+                  }
+                }}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === 'docs'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+                }`}
+              >
+                📄 Documents ({bid.documents.length})
+              </button>
+            )}
+            
+            {/* Other tabs - require summary */}
+            {(['bom', 'vendors', 'rfq'] as Tab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
                   setActiveTab(tab);
-                  // Load RFQs when switching to RFQ tab
                   if (tab === 'rfq') {
                     loadRFQs();
                   }
                 }}
-                disabled={tab !== 'summary' && !summary}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                disabled={!summary}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === tab
                     ? 'bg-[var(--accent)] text-white'
                     : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
-                {tab === 'summary' && '📋 Summary'}
                 {tab === 'bom' && `📦 BOM ${summary ? `(${summary.line_items.length})` : ''}`}
                 {tab === 'vendors' && '🏢 Vendors'}
                 {tab === 'rfq' && `📝 RFQ ${sentRFQs.length > 0 ? `(${sentRFQs.length})` : ''}`}
@@ -506,6 +585,72 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
                         </button>
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Documents Tab */}
+            {activeTab === 'docs' && bid.documents && bid.documents.length > 0 && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-[var(--foreground)]">
+                    Bid Documents
+                  </h3>
+                  <p className="text-sm text-[var(--muted)]">
+                    {bid.documents.length} document{bid.documents.length !== 1 ? 's' : ''} attached to this bid
+                  </p>
+                </div>
+
+                {isLoadingDocs ? (
+                  <div className="text-center py-8">
+                    <svg className="w-8 h-8 mx-auto text-[var(--accent)] animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <p className="text-[var(--muted)] mt-2">Loading documents...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {bid.documents.map((doc, idx) => {
+                      const downloadUrl = documentUrls[doc.storage_path];
+                      const fileIcon = getFileIcon(doc.type);
+                      
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-4 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)]">
+                              {fileIcon}
+                            </div>
+                            <div>
+                              <p className="font-medium text-[var(--foreground)]">{doc.name}</p>
+                              <p className="text-xs text-[var(--muted)]">
+                                {doc.type.toUpperCase()} {doc.size && `• ${doc.size}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {downloadUrl ? (
+                              <a
+                                href={downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                              >
+                                ⬇️ Download
+                              </a>
+                            ) : (
+                              <span className="px-4 py-2 text-sm text-[var(--muted)]">
+                                Loading...
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

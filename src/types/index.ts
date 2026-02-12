@@ -1,3 +1,12 @@
+export interface BidDocument {
+  name: string;
+  filename: string;
+  type: string;
+  size: string;
+  storage_path: string;
+  download_url?: string;
+}
+
 export interface Bid {
   id: string;
   title: string;
@@ -11,6 +20,7 @@ export interface Bid {
   isAnalyzed?: boolean;
   source?: string;
   description?: string;
+  documents?: BidDocument[];
 }
 
 export interface Source {

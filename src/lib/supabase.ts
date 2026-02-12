@@ -47,6 +47,15 @@ async function supabaseQuery<T>(
   return response.json();
 }
 
+export interface BidDocument {
+  name: string;
+  filename: string;
+  type: string;
+  size: string;
+  storage_path: string;
+  download_url?: string;
+}
+
 export interface Bid {
   id: string;
   source_id: string;
@@ -60,6 +69,7 @@ export interface Bid {
   url: string | null;
   description: string | null;
   created_at: string;
+  documents?: BidDocument[];
   sources?: { name: string };
 }
 
@@ -88,6 +98,15 @@ export async function fetchBids(): Promise<Bid[]> {
   });
   
   return bids;
+}
+
+export async function fetchBidWithDocuments(externalId: string): Promise<Bid | null> {
+  const bids = await supabaseQuery<Bid>('bids', {
+    select: '*,sources(name)',
+    filter: `external_id=eq.${externalId}`,
+  });
+  
+  return bids.length > 0 ? bids[0] : null;
 }
 
 export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
@@ -150,7 +169,36 @@ export function transformBid(bid: Bid) {
     sheetStatus: bid.status,
     source: bid.sources?.name || 'Unknown',
     description: bid.description || '',
+    documents: bid.documents || [],
   };
+}
+
+/**
+ * Get a signed URL for downloading a document from Supabase storage
+ */
+export async function getDocumentUrl(storagePath: string): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/sign/bid-documents/${storagePath}`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expiresIn: 3600 }), // 1 hour expiry
+      }
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return data.signedURL ? `${SUPABASE_URL}/storage/v1${data.signedURL}` : null;
+  } catch (error) {
+    console.error('Error getting document URL:', error);
+    return null;
+  }
 }
 
 export function transformRFQ(rfq: any) {
