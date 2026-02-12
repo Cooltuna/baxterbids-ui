@@ -174,27 +174,14 @@ export function transformBid(bid: Bid) {
 }
 
 /**
- * Get a signed URL for downloading a document from Supabase storage
+ * Get a public URL for downloading a document from Supabase storage
+ * Bucket is public, so we just construct the URL directly
  */
 export async function getDocumentUrl(storagePath: string): Promise<string | null> {
   try {
-    const response = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/sign/bid-documents/${storagePath}`,
-      {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ expiresIn: 3600 }), // 1 hour expiry
-      }
-    );
-    
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    return data.signedURL ? `${SUPABASE_URL}/storage/v1${data.signedURL}` : null;
+    // URL encode the path components to handle spaces and special chars
+    const encodedPath = storagePath.split('/').map(encodeURIComponent).join('/');
+    return `${SUPABASE_URL}/storage/v1/object/public/bid-documents/${encodedPath}`;
   } catch (error) {
     console.error('Error getting document URL:', error);
     return null;
