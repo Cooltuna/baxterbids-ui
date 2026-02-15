@@ -31,6 +31,8 @@ export default function SourceDashboard() {
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
   const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const [analyzingBidId, setAnalyzingBidId] = useState<string | null>(null);
   
   // CACI Login state
   const [caciStatus, setCaciStatus] = useState<'idle' | 'launching' | 'waiting' | 'success' | 'error'>('idle');
@@ -196,6 +198,26 @@ export default function SourceDashboard() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handle marking bid as interested - triggers auto-analysis
+  const handleMarkInterested = (bid: Bid) => {
+    setAnalyzingBidId(bid.id);
+    setAutoAnalyze(true);
+    setSelectedBid(bid);
+  };
+
+  // Handle analysis completion
+  const handleAnalysisComplete = () => {
+    setAnalyzingBidId(null);
+    setAutoAnalyze(false);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setSelectedBid(null);
+    setAutoAnalyze(false);
+    setAnalyzingBidId(null);
   };
 
   const formatTimestamp = (ts?: string) => {
@@ -442,9 +464,11 @@ export default function SourceDashboard() {
             searchQuery={searchQuery} 
             isLoading={isLoading}
             onSelectBid={setSelectedBid}
+            onMarkInterested={handleMarkInterested}
             onBidUpdated={handleRefresh}
             rfqSummary={rfqSummary}
             showSource={false}
+            analyzingBidId={analyzingBidId}
           />
         )}
       </main>
@@ -461,7 +485,9 @@ export default function SourceDashboard() {
       {/* Bid Detail Modal */}
       <BidDetailModal 
         bid={selectedBid}
-        onClose={() => setSelectedBid(null)}
+        onClose={handleModalClose}
+        autoAnalyze={autoAnalyze}
+        onAnalysisComplete={handleAnalysisComplete}
       />
     </div>
   );

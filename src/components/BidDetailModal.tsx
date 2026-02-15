@@ -10,6 +10,8 @@ import CustomVendorInput from './CustomVendorInput';
 interface BidDetailModalProps {
   bid: Bid | null;
   onClose: () => void;
+  autoAnalyze?: boolean;
+  onAnalysisComplete?: () => void;
 }
 
 // Helper function to get file icon based on type
@@ -50,7 +52,7 @@ function getFileIcon(fileType: string) {
 
 type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq';
 
-export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
+export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete }: BidDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [summary, setSummary] = useState<BidSummary | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
@@ -177,12 +179,27 @@ export default function BidDetailModal({ bid, onClose }: BidDetailModalProps) {
       setActiveTab('bom');
       setShowPasteBom(false);
       setIsFromCache(false); // Fresh analysis
+      // Notify parent that analysis is complete
+      onAnalysisComplete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze bid');
+      // Also notify on error so loading state clears
+      onAnalysisComplete?.();
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  // Auto-analyze effect - triggers when autoAnalyze is true and no cached analysis
+  useEffect(() => {
+    if (autoAnalyze && bid && !summary && !isLoadingCache && !isAnalyzing && apiAvailable !== false) {
+      // Small delay to let UI settle
+      const timer = setTimeout(() => {
+        handleAnalyze(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [autoAnalyze, bid, summary, isLoadingCache, isAnalyzing, apiAvailable]);
 
   const toggleItem = (index: number) => {
     const newSelected = new Set(selectedItems);

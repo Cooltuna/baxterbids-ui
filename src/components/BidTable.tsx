@@ -9,12 +9,14 @@ interface BidTableProps {
   searchQuery: string;
   isLoading?: boolean;
   onSelectBid?: (bid: Bid) => void;
+  onMarkInterested?: (bid: Bid) => void;
   onBidUpdated?: (bidId?: string, newStatus?: string) => void;
   rfqSummary?: RFQSummary;
   showSource?: boolean;
+  analyzingBidId?: string | null;
 }
 
-export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onBidUpdated, rfqSummary = {}, showSource = false }: BidTableProps) {
+export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onMarkInterested, onBidUpdated, rfqSummary = {}, showSource = false, analyzingBidId = null }: BidTableProps) {
   const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
@@ -63,9 +65,13 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     try {
       await updateBidStatus(bid.id, newStatus);
       
-      // If marking as Interested, open the detail modal to trigger analysis
-      if (!isInterested && onSelectBid) {
-        onSelectBid(bid);
+      // If marking as Interested, trigger auto-analysis flow
+      if (!isInterested) {
+        if (onMarkInterested) {
+          onMarkInterested(bid);
+        } else if (onSelectBid) {
+          onSelectBid(bid);
+        }
       }
       
       onBidUpdated?.(bid.id, newStatus);
@@ -258,19 +264,21 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                       {(() => {
                         const effectiveStatus = localStatuses[bid.id] || bid.sheetStatus;
                         const isInterested = effectiveStatus?.toLowerCase() === 'interested';
+                        const isAnalyzing = analyzingBidId === bid.id;
+                        const isWorking = updatingBid === bid.id || isAnalyzing;
                         return (
                       <button 
                         onClick={(e) => handleInterested(bid, e)}
-                        disabled={updatingBid === bid.id}
-                        className={`p-2 rounded-lg transition-all disabled:opacity-50 ${
-                          isInterested
+                        disabled={isWorking}
+                        className={`p-2 rounded-lg transition-all disabled:opacity-70 ${
+                          isInterested || isAnalyzing
                             ? 'bg-[var(--success)]/20 text-[var(--success)]'
                             : 'hover:bg-[var(--success)]/10 text-[var(--muted)] hover:text-[var(--success)]'
                         }`}
-                        title={isInterested ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
+                        title={isAnalyzing ? 'Analyzing bid...' : isInterested ? 'Marked as Interested (click to undo)' : 'Mark as Interested'}
                       >
-                        {updatingBid === bid.id ? (
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        {isWorking ? (
+                          <svg className="w-4 h-4 animate-spin text-[var(--success)]" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
