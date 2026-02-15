@@ -192,14 +192,22 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
 
   // Auto-analyze effect - triggers when autoAnalyze is true and no cached analysis
   useEffect(() => {
-    if (autoAnalyze && bid && !summary && !isLoadingCache && !isAnalyzing && apiAvailable !== false) {
-      // Small delay to let UI settle
-      const timer = setTimeout(() => {
-        handleAnalyze(false);
-      }, 100);
-      return () => clearTimeout(timer);
+    // Only auto-analyze for Fairmarkit bids when autoAnalyze flag is set
+    if (!autoAnalyze || !bid || summary || isLoadingCache || isAnalyzing || apiAvailable === false) {
+      return;
     }
-  }, [autoAnalyze, bid, summary, isLoadingCache, isAnalyzing, apiAvailable]);
+    
+    // Small delay to let UI settle and ensure component is fully mounted
+    const timer = setTimeout(() => {
+      // Double-check conditions before calling
+      if (bid?.url) {
+        handleAnalyze(false);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoAnalyze, bid?.id, summary, isLoadingCache, isAnalyzing, apiAvailable]);
 
   const toggleItem = (index: number) => {
     const newSelected = new Set(selectedItems);
