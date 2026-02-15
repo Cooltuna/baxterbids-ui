@@ -137,6 +137,38 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
     }
   }, [bid?.id]);
 
+  // Auto-analyze effect - must be before early return to follow React hooks rules
+  useEffect(() => {
+    // Only auto-analyze when autoAnalyze flag is set and conditions are met
+    if (!autoAnalyze || !bid?.url || summary || isLoadingCache || isAnalyzing || apiAvailable === false) {
+      return;
+    }
+    
+    // Delay to let cache loading complete first
+    const timer = setTimeout(async () => {
+      // Re-check conditions and run analysis directly here
+      if (!summary && !isLoadingCache && bid?.url) {
+        setIsAnalyzing(true);
+        setError(null);
+        try {
+          const result = await analyzeBid(bid.id, bid.url, bid.title);
+          setSummary(result);
+          setSelectedItems(new Set(result.line_items.map((_: unknown, i: number) => i)));
+          setActiveTab('bom');
+          setIsFromCache(false);
+          onAnalysisComplete?.();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to analyze bid');
+          onAnalysisComplete?.();
+        } finally {
+          setIsAnalyzing(false);
+        }
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [autoAnalyze, bid?.id, bid?.url, bid?.title, summary, isLoadingCache, isAnalyzing, apiAvailable, onAnalysisComplete]);
+
   if (!bid) return null;
 
   const handleAnalyze = async (usePastedBom = false) => {
@@ -189,25 +221,6 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
       setIsAnalyzing(false);
     }
   };
-
-  // Auto-analyze effect - triggers when autoAnalyze is true and no cached analysis
-  useEffect(() => {
-    // Only auto-analyze for Fairmarkit bids when autoAnalyze flag is set
-    if (!autoAnalyze || !bid || summary || isLoadingCache || isAnalyzing || apiAvailable === false) {
-      return;
-    }
-    
-    // Small delay to let UI settle and ensure component is fully mounted
-    const timer = setTimeout(() => {
-      // Double-check conditions before calling
-      if (bid?.url) {
-        handleAnalyze(false);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoAnalyze, bid?.id, summary, isLoadingCache, isAnalyzing, apiAvailable]);
 
   const toggleItem = (index: number) => {
     const newSelected = new Set(selectedItems);
