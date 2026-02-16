@@ -7,6 +7,41 @@ export interface BidDocument {
   download_url?: string;
 }
 
+export interface PurchaseHistoryRecord {
+  contract: string;
+  awardee: string | null;
+  part_number: string | null;
+  bidders: string | null;
+  set_aside: string | null;
+  unit_price: number | null;
+  quantity: number | null;
+  date: string | null;
+}
+
+export interface ApprovedSupplier {
+  name: string;
+  cage: string;
+  part_number: string;
+  cage_status?: string;
+}
+
+export interface BidEnrichment {
+  enriched_at: string;
+  highergov: {
+    bid_info: {
+      nsn: string;
+      nomenclature: string;
+      quantity: number;
+      unit: string;
+      std_price: number;
+      last_price: number;
+      est_value: number;
+    };
+    purchase_history: PurchaseHistoryRecord[];
+    approved_suppliers: ApprovedSupplier[];
+  };
+}
+
 export interface Bid {
   id: string;
   title: string;
@@ -21,6 +56,7 @@ export interface Bid {
   source?: string;
   description?: string;
   documents?: BidDocument[];
+  enrichment?: BidEnrichment | null;
 }
 
 export interface Source {

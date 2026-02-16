@@ -56,6 +56,41 @@ export interface BidDocument {
   download_url?: string;
 }
 
+export interface PurchaseHistoryRecord {
+  contract: string;
+  awardee: string | null;
+  part_number: string | null;
+  bidders: string | null;
+  set_aside: string | null;
+  unit_price: number | null;
+  quantity: number | null;
+  date: string | null;
+}
+
+export interface ApprovedSupplier {
+  name: string;
+  cage: string;
+  part_number: string;
+  cage_status?: string;
+}
+
+export interface BidEnrichment {
+  enriched_at: string;
+  highergov: {
+    bid_info: {
+      nsn: string;
+      nomenclature: string;
+      quantity: number;
+      unit: string;
+      std_price: number;
+      last_price: number;
+      est_value: number;
+    };
+    purchase_history: PurchaseHistoryRecord[];
+    approved_suppliers: ApprovedSupplier[];
+  };
+}
+
 export interface Bid {
   id: string;
   source_id: string;
@@ -71,6 +106,7 @@ export interface Bid {
   created_at: string;
   documents?: BidDocument[];
   sources?: { name: string };
+  raw_data?: string | { enrichment?: BidEnrichment };
 }
 
 export interface RFQ {
@@ -92,7 +128,7 @@ export interface Source {
 
 export async function fetchBids(): Promise<Bid[]> {
   const bids = await supabaseQuery<Bid>('bids', {
-    select: '*,sources(name)',
+    select: 'id,source_id,external_id,title,agency,status,close_date,estimated_value,category,url,description,created_at,documents,raw_data,sources(name)',
     filter: 'or=(dismissed.is.null,dismissed.eq.false)',
     order: 'close_date.asc.nullslast',
   });
@@ -118,7 +154,7 @@ export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
   if (sources.length === 0) return [];
   
   const bids = await supabaseQuery<Bid>('bids', {
-    select: '*,sources(name)',
+    select: 'id,source_id,external_id,title,agency,status,close_date,estimated_value,category,url,description,created_at,documents,raw_data,sources(name)',
     filter: `source_id=eq.${sources[0].id}&or=(dismissed.is.null,dismissed.eq.false)`,
     order: 'close_date.asc.nullslast',
   });
@@ -157,6 +193,21 @@ export function transformBid(bid: Bid) {
     uiStatus = 'closing-soon';
   }
   
+  // Parse raw_data for enrichment
+  let enrichment: BidEnrichment | null = null;
+  if (bid.raw_data) {
+    try {
+      const rawData = typeof bid.raw_data === 'string' 
+        ? JSON.parse(bid.raw_data) 
+        : bid.raw_data;
+      if (rawData?.enrichment) {
+        enrichment = rawData.enrichment;
+      }
+    } catch (e) {
+      console.warn('Failed to parse raw_data:', e);
+    }
+  }
+  
   return {
     id: bid.external_id,
     title: bid.title,
@@ -170,6 +221,7 @@ export function transformBid(bid: Bid) {
     source: bid.sources?.name || 'Unknown',
     description: bid.description || '',
     documents: bid.documents || [],
+    enrichment,
   };
 }
 
