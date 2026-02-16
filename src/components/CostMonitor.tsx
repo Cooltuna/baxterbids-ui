@@ -34,7 +34,7 @@ interface UsageData {
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://belkin-viewed-ide-surrey.trycloudflare.com'
+  ? 'https://rarely-biography-dans-sink.trycloudflare.com'
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
