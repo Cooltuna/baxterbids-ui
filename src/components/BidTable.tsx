@@ -206,7 +206,7 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                         {bid.title}
                       </button>
                       <p className="text-sm text-[var(--muted)] mt-1">
-                        {bid.id} &middot; {bid.agency}
+                        {bid.agency}
                       </p>
                     </div>
                   </td>
