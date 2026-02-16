@@ -118,7 +118,7 @@ export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
   if (sources.length === 0) return [];
   
   const bids = await supabaseQuery<Bid>('bids', {
-    select: '*',
+    select: '*,sources(name)',
     filter: `source_id=eq.${sources[0].id}&or=(dismissed.is.null,dismissed.eq.false)`,
     order: 'close_date.asc.nullslast',
   });
