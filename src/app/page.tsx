@@ -132,6 +132,9 @@ export default function Home() {
     window.location.reload();
   };
 
+  // Convert source name to URL slug
+  const toSlug = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
+
   const formatTimestamp = (ts?: string) => {
     if (!ts) return 'Never';
     const date = new Date(ts);
@@ -222,7 +225,7 @@ export default function Home() {
             sources.map(source => (
               <Link
                 key={source.id}
-                href={`/sources/${source.name.toLowerCase()}`}
+                href={`/sources/${toSlug(source.name)}`}
                 className="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)] hover:border-[var(--accent)] transition-all group"
               >
                 <div className="flex items-center justify-between mb-4">

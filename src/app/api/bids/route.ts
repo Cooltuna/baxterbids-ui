@@ -4,6 +4,13 @@ import { fetchBids, fetchBidsBySource, transformBid } from '@/lib/supabase';
 export const dynamic = 'force-dynamic'; // Required for request.url usage
 export const revalidate = 0;
 
+// Map URL slugs to actual source names in Supabase
+const SOURCE_NAMES: Record<string, string> = {
+  'caci': 'CACI',
+  'highergov-hubzone': 'HigherGov HUBZone',
+  'sam.gov': 'SAM.gov',
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,13 +19,19 @@ export async function GET(request: NextRequest) {
     // Fetch bids - either all or by source
     let bids;
     if (sourceFilter) {
-      // Try title case first, then uppercase (for acronyms like CACI)
-      const titleCase = sourceFilter.charAt(0).toUpperCase() + sourceFilter.slice(1);
-      bids = await fetchBidsBySource(titleCase);
-      
-      // If no results, try uppercase (handles CACI, SAM, etc.)
-      if (bids.length === 0) {
-        bids = await fetchBidsBySource(sourceFilter.toUpperCase());
+      // Check slug mapping first
+      const mappedName = SOURCE_NAMES[sourceFilter.toLowerCase()];
+      if (mappedName) {
+        bids = await fetchBidsBySource(mappedName);
+      } else {
+        // Try title case first, then uppercase (for acronyms like CACI)
+        const titleCase = sourceFilter.charAt(0).toUpperCase() + sourceFilter.slice(1);
+        bids = await fetchBidsBySource(titleCase);
+        
+        // If no results, try uppercase (handles CACI, SAM, etc.)
+        if (bids.length === 0) {
+          bids = await fetchBidsBySource(sourceFilter.toUpperCase());
+        }
       }
     } else {
       bids = await fetchBids();

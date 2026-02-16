@@ -18,11 +18,20 @@ interface SourceStats {
   interested: number;
 }
 
+// Map URL slugs to display names
+const SOURCE_NAMES: Record<string, string> = {
+  'caci': 'CACI',
+  'highergov-hubzone': 'HigherGov HUBZone',
+  'sam.gov': 'SAM.gov',
+};
+
 export default function SourceDashboard() {
   const params = useParams();
   const sourceKey = params.source as string;
+  // Check mapping first, then try title case
+  const sourceName = SOURCE_NAMES[sourceKey?.toLowerCase()] 
+    || sourceKey?.charAt(0).toUpperCase() + sourceKey?.slice(1);
   const isCACI = sourceKey?.toLowerCase() === 'caci';
-  const sourceName = isCACI ? 'CACI' : sourceKey?.charAt(0).toUpperCase() + sourceKey?.slice(1);
   
   const [bids, setBids] = useState<Bid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
