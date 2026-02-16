@@ -672,14 +672,27 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                           </div>
                           <div className="flex items-center gap-2">
                             {downloadUrl ? (
-                              <a
-                                href={downloadUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
-                              >
-                                ⬇️ Download
-                              </a>
+                              <>
+                                <a
+                                  href={['pdf'].includes(doc.type?.toLowerCase()) 
+                                    ? downloadUrl 
+                                    : `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
+                                >
+                                  👁️ Preview
+                                </a>
+                                <a
+                                  href={downloadUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                                >
+                                  ⬇️ Download
+                                </a>
+                              </>
                             ) : (
                               <span className="px-4 py-2 text-sm text-[var(--muted)]">
                                 Loading...
