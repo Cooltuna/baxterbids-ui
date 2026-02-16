@@ -731,6 +731,100 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                       </div>
                     )}
 
+                    {/* Pricing Intelligence from HigherGov */}
+                    {bid.enrichment?.highergov && (
+                      <div className="space-y-4 pt-4 border-t border-[var(--border)]">
+                        <div className="flex items-center gap-2 text-sm text-[var(--success)]">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          📊 Pricing Intelligence
+                        </div>
+                        
+                        {/* Bid Info Summary */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">NSN</p>
+                            <p className="font-mono text-sm">{bid.enrichment.highergov.bid_info?.nsn || 'N/A'}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">Quantity</p>
+                            <p className="font-medium">{bid.enrichment.highergov.bid_info?.quantity || 0} {bid.enrichment.highergov.bid_info?.unit || 'EA'}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">Last Price</p>
+                            <p className="font-medium text-[var(--success)]">${bid.enrichment.highergov.bid_info?.last_price?.toLocaleString() || 'N/A'}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/30">
+                            <p className="text-xs text-[var(--accent)]">Est. Value</p>
+                            <p className="font-bold text-[var(--accent)]">${bid.enrichment.highergov.bid_info?.est_value?.toLocaleString() || 'N/A'}</p>
+                          </div>
+                        </div>
+
+                        {/* Approved Suppliers */}
+                        {bid.enrichment.highergov.approved_suppliers?.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                              Approved Manufacturers ({bid.enrichment.highergov.approved_suppliers.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {bid.enrichment.highergov.approved_suppliers.map((supplier, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                                  <div>
+                                    <p className="font-medium text-[var(--foreground)]">{supplier.name}</p>
+                                    <p className="text-xs text-[var(--muted)]">Part #: {supplier.part_number}</p>
+                                  </div>
+                                  <span className="px-2 py-1 rounded bg-[var(--accent)]/10 text-xs font-mono text-[var(--accent)]">
+                                    CAGE: {supplier.cage}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Purchase History */}
+                        {bid.enrichment.highergov.purchase_history?.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                              Purchase History ({bid.enrichment.highergov.purchase_history.length} records)
+                            </h4>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b border-[var(--border)] text-left">
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Unit Price</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {bid.enrichment.highergov.purchase_history.slice(0, 10).map((record, idx) => (
+                                    <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
+                                      <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
+                                      <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
+                                      <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
+                                        ${record.unit_price?.toLocaleString() || '-'}
+                                      </td>
+                                      <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
+                                      <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              {bid.enrichment.highergov.purchase_history.length > 10 && (
+                                <p className="text-xs text-[var(--muted)] mt-2 text-center">
+                                  Showing 10 of {bid.enrichment.highergov.purchase_history.length} records
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Quick Actions */}
                     <div className="flex gap-3 pt-4">
                       <button
