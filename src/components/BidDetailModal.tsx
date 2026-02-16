@@ -73,6 +73,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
   const [showBidSummary, setShowBidSummary] = useState(false);
   const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({});
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; type: string } | null>(null);
 
   // Check API availability on mount
   useEffect(() => {
@@ -673,17 +674,18 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                           <div className="flex items-center gap-2">
                             {downloadUrl ? (
                               <>
-                                <a
-                                  href={['pdf'].includes(doc.type?.toLowerCase()) 
-                                    ? downloadUrl 
-                                    : `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  onClick={() => setPreviewDoc({
+                                    url: ['pdf'].includes(doc.type?.toLowerCase()) 
+                                      ? downloadUrl 
+                                      : `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`,
+                                    name: doc.name,
+                                    type: doc.type
+                                  })}
                                   className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
                                 >
                                   👁️ Preview
-                                </a>
+                                </button>
                                 <a
                                   href={downloadUrl}
                                   target="_blank"
@@ -702,6 +704,28 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                         </div>
                       );
                     })}
+                  </div>
+                )}
+
+                {/* Inline Preview Panel */}
+                {previewDoc && (
+                  <div className="mt-6 border border-[var(--border)] rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between p-3 bg-[var(--card)] border-b border-[var(--border)]">
+                      <span className="font-medium text-[var(--foreground)]">📄 {previewDoc.name}</span>
+                      <button
+                        onClick={() => setPreviewDoc(null)}
+                        className="p-1 rounded hover:bg-[var(--background)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <iframe
+                      src={previewDoc.url}
+                      className="w-full h-[500px] bg-white"
+                      title={`Preview: ${previewDoc.name}`}
+                    />
                   </div>
                 )}
               </div>
