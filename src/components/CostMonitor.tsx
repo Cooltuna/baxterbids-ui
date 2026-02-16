@@ -34,7 +34,7 @@ interface UsageData {
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://distribute-essential-motivated-pharmacies.trycloudflare.com'
+  ? 'https://settlement-poker-median-component.trycloudflare.com'
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
