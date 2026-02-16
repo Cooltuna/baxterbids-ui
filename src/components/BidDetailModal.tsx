@@ -316,7 +316,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                 {bid.title}
               </h2>
               <p className="text-sm text-[var(--muted)] mt-1">
-                {bid.id} • {bid.agency}
+                {bid.agency}{bid.value ? ` • ${bid.value}` : ''}
               </p>
             </div>
             <button
@@ -422,17 +422,17 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
             {/* Summary Tab */}
             {activeTab === 'summary' && (
               <div>
-                {/* Show pre-populated description for email-based bids */}
+                {/* Show description if available */}
                 {!summary && bid.description ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-[var(--accent)]">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Email-based bid - Pre-analyzed
+                      Bid Summary
                     </div>
                     <div className="prose prose-sm max-w-none">
-                      <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm">
+                      <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm text-[var(--foreground)]">
                         {bid.description}
                       </div>
                     </div>
