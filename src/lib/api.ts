@@ -7,7 +7,7 @@ import { BidSummary, VendorSearchResult, RFQDraft, LineItem } from '@/types';
 
 // API base URL - Cloudflare tunnel for external access, localhost for local dev
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://vertex-consultancy-raises-donations.trycloudflare.com'
+  ? 'https://david-cliff-absence-protocol.trycloudflare.com'
   : 'http://localhost:8000';
 
 class ApiError extends Error {

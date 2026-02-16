@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react';
 import { LineItem, Vendor } from '@/types';
 import { draftRFQ } from '@/lib/api';
 
+const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? 'https://david-cliff-absence-protocol.trycloudflare.com'
+  : 'http://localhost:8000';
+
 interface RFQDraftModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -95,7 +99,7 @@ export default function RFQDraftModal({
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8000/rfq/send', {
+      const response = await fetch(`${API_BASE}/rfq/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
