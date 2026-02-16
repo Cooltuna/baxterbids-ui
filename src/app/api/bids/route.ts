@@ -8,6 +8,7 @@ export const revalidate = 0;
 const SOURCE_NAMES: Record<string, string> = {
   'caci': 'CACI',
   'highergov-hubzone': 'HigherGov HUBZone',
+  'highergov hubzone': 'HigherGov HUBZone', // Handle URL-decoded space
   'sam.gov': 'SAM.gov',
 };
 
@@ -19,8 +20,9 @@ export async function GET(request: NextRequest) {
     // Fetch bids - either all or by source
     let bids;
     if (sourceFilter) {
-      // Check slug mapping first
-      const mappedName = SOURCE_NAMES[sourceFilter.toLowerCase()];
+      // Normalize: decode URI and check both dash/space versions
+      const normalized = decodeURIComponent(sourceFilter).toLowerCase();
+      const mappedName = SOURCE_NAMES[normalized] || SOURCE_NAMES[normalized.replace(/ /g, '-')];
       if (mappedName) {
         bids = await fetchBidsBySource(mappedName);
       } else {

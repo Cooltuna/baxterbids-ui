@@ -22,16 +22,20 @@ interface SourceStats {
 const SOURCE_NAMES: Record<string, string> = {
   'caci': 'CACI',
   'highergov-hubzone': 'HigherGov HUBZone',
+  'highergov hubzone': 'HigherGov HUBZone', // Handle URL-decoded space
   'sam.gov': 'SAM.gov',
 };
 
 export default function SourceDashboard() {
   const params = useParams();
   const sourceKey = params.source as string;
-  // Check mapping first, then try title case
-  const sourceName = SOURCE_NAMES[sourceKey?.toLowerCase()] 
+  // Normalize: decode URI and convert spaces to dashes for lookup
+  const normalizedKey = decodeURIComponent(sourceKey || '').toLowerCase();
+  // Check mapping first (try both dash and space versions), then try title case
+  const sourceName = SOURCE_NAMES[normalizedKey] 
+    || SOURCE_NAMES[normalizedKey.replace(/ /g, '-')]
     || sourceKey?.charAt(0).toUpperCase() + sourceKey?.slice(1);
-  const isCACI = sourceKey?.toLowerCase() === 'caci';
+  const isCACI = normalizedKey === 'caci';
   
   const [bids, setBids] = useState<Bid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
