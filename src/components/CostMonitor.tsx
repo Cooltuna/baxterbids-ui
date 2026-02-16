@@ -34,7 +34,7 @@ interface UsageData {
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://settlement-poker-median-component.trycloudflare.com'
+  ? 'https://api.logisticollc.com'
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
