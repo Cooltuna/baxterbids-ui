@@ -675,13 +675,27 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                             {downloadUrl ? (
                               <>
                                 <button
-                                  onClick={() => setPreviewDoc({
-                                    url: ['pdf'].includes(doc.type?.toLowerCase()) 
-                                      ? downloadUrl 
-                                      : `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`,
-                                    name: doc.name,
-                                    type: doc.type
-                                  })}
+                                  onClick={() => {
+                                    const docType = doc.type?.toLowerCase() || '';
+                                    let previewUrl = downloadUrl;
+                                    
+                                    if (docType === 'pdf') {
+                                      // PDFs can be viewed directly
+                                      previewUrl = downloadUrl;
+                                    } else if (['xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt'].includes(docType)) {
+                                      // Office files use Microsoft viewer
+                                      previewUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(downloadUrl)}`;
+                                    } else {
+                                      // Fallback to Google viewer
+                                      previewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
+                                    }
+                                    
+                                    setPreviewDoc({
+                                      url: previewUrl,
+                                      name: doc.name,
+                                      type: doc.type
+                                    });
+                                  }}
                                   className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--card)] transition-colors"
                                 >
                                   👁️ Preview
