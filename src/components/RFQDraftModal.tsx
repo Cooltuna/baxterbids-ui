@@ -5,7 +5,7 @@ import { LineItem, Vendor } from '@/types';
 import { draftRFQ } from '@/lib/api';
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://david-cliff-absence-protocol.trycloudflare.com'
+  ? 'https://distribute-essential-motivated-pharmacies.trycloudflare.com'
   : 'http://localhost:8000';
 
 interface RFQDraftModalProps {
