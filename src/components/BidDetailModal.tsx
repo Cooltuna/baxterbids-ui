@@ -482,21 +482,21 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                           </svg>
-                          Paste BOM from Fairmarkit
+                          Paste BOM from CACI
                         </button>
                         <p className="text-xs text-[var(--muted)] max-w-sm mx-auto">
-                          For detailed BOMs, copy the item list from Fairmarkit and paste it here
+                          For detailed BOMs, copy the item list from CACI and paste it here
                         </p>
                       </div>
                     ) : (
                       <div className="max-w-2xl mx-auto text-left">
                         <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
-                          Paste BOM text from Fairmarkit:
+                          Paste BOM text from CACI:
                         </label>
                         <textarea
                           value={bomText}
                           onChange={(e) => setBomText(e.target.value)}
-                          placeholder="Paste the entire bid details including items list from Fairmarkit..."
+                          placeholder="Paste the entire bid details including items list from CACI..."
                           className="w-full h-48 px-4 py-3 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm font-mono focus:outline-none focus:border-[var(--accent)] transition-colors resize-none"
                         />
                         <div className="flex items-center justify-between mt-3">
