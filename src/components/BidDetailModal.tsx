@@ -306,6 +306,34 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
         bid.title,
         rawBomText
       );
+      
+      // Enhance result with bid data for HigherGov bids
+      // 1. Use bid.closeDate if deadline not found by AI
+      if ((!result.deadline || result.deadline === 'Not specified') && bid.closeDate) {
+        result.deadline = new Date(bid.closeDate).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        if (result.key_dates) {
+          result.key_dates.submission_due = result.deadline;
+        }
+      }
+      
+      // 2. For HigherGov bids with enrichment, add quantity from enrichment to line items
+      if (bid.enrichment?.highergov?.bid_info) {
+        const enrichQty = bid.enrichment.highergov.bid_info.quantity;
+        const enrichUnit = bid.enrichment.highergov.bid_info.unit || 'EA';
+        if (enrichQty && result.line_items) {
+          result.line_items = result.line_items.map((item: LineItem) => ({
+            ...item,
+            quantity: item.quantity || String(enrichQty),
+            unit: item.unit || enrichUnit
+          }));
+        }
+      }
+      
       setSummary(result);
       // Auto-select all items
       setSelectedItems(new Set(result.line_items.map((_, i) => i)));
