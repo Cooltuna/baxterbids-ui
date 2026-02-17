@@ -283,65 +283,82 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
     setError(null);
 
     try {
-      let rawBomText = usePastedBom ? bomText.trim() : undefined;
+      let result: BidSummary;
       
-      // Use existing description if available (HigherGov, email bids, etc.)
-      if (!rawBomText && bid.description) {
-        rawBomText = bid.description;
-      }
-      
-      // For Unison bids, fetch details using authenticated scraper
-      if (bid.source?.toLowerCase() === 'unison' && !usePastedBom && !bid.description) {
-        try {
-          const details = await fetchBidDetails(bid.id, bid.url, 'unison');
-          rawBomText = details.description;
-        } catch (fetchErr) {
-          console.warn('Failed to fetch Unison details, trying direct analysis:', fetchErr);
-        }
-      }
-      
-      const result = await analyzeBid(
-        bid.id, 
-        bid.url, 
-        bid.title,
-        rawBomText
-      );
-      
-      // Enhance result with bid data for HigherGov bids
-      console.log('[BOM Debug] bid.closeDate:', bid.closeDate);
-      console.log('[BOM Debug] bid.enrichment:', bid.enrichment);
-      console.log('[BOM Debug] result.deadline before:', result.deadline);
-      console.log('[BOM Debug] result.line_items before:', result.line_items);
-      
-      // 1. Use bid.closeDate if deadline not found by AI
-      if ((!result.deadline || result.deadline === 'Not specified') && bid.closeDate) {
-        result.deadline = new Date(bid.closeDate).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-        if (result.key_dates) {
-          result.key_dates.submission_due = result.deadline;
-        }
-        console.log('[BOM Debug] Set deadline from closeDate:', result.deadline);
-      }
-      
-      // 2. For HigherGov bids with enrichment, add quantity from enrichment to line items
-      if (bid.enrichment?.highergov?.bid_info) {
-        const enrichQty = bid.enrichment.highergov.bid_info.quantity;
-        const enrichUnit = bid.enrichment.highergov.bid_info.unit || 'EA';
-        console.log('[BOM Debug] enrichQty:', enrichQty, 'enrichUnit:', enrichUnit);
-        if (enrichQty && result.line_items) {
-          result.line_items = result.line_items.map((item: LineItem) => ({
-            ...item,
-            quantity: item.quantity || String(enrichQty),
-            unit: item.unit || enrichUnit
-          }));
-          console.log('[BOM Debug] Updated line_items:', result.line_items);
-        }
+      // For HigherGov bids WITH enrichment, build BOM directly from enrichment data (no AI needed)
+      if (bid.enrichment?.highergov?.bid_info && bid.source?.toLowerCase().includes('highergov')) {
+        const info = bid.enrichment.highergov.bid_info;
+        const formattedDeadline = bid.closeDate 
+          ? new Date(bid.closeDate).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric', 
+              month: 'long',
+              day: 'numeric'
+            })
+          : 'Not specified';
+        
+        result = {
+          bid_id: bid.id,
+          title: bid.title,
+          agency: bid.agency || 'DLA',
+          scope: `${info.nomenclature} - NSN: ${info.nsn}`,
+          line_items: [{
+            description: `${info.nomenclature} (NSN: ${info.nsn})`,
+            quantity: String(info.quantity || ''),
+            unit: info.unit || 'EA',
+            specifications: `Std Price: $${info.std_price?.toLocaleString() || 'N/A'}, Last Price: $${info.last_price?.toLocaleString() || 'N/A'}`
+          }],
+          requirements: ['Government procurement - standard terms apply'],
+          deadline: formattedDeadline,
+          estimated_value: info.est_value ? `$${info.est_value.toLocaleString()}` : undefined,
+          key_dates: {
+            submission_due: formattedDeadline
+          },
+          recommendations: [
+            'Check approved suppliers list for sourcing options',
+            'Review purchase history for competitive pricing'
+          ],
+          analyzed_at: new Date().toISOString()
+        };
+        console.log('[BOM] Built from enrichment data:', result);
       } else {
-        console.log('[BOM Debug] No enrichment data found');
+        // For other bids, use AI analysis
+        let rawBomText = usePastedBom ? bomText.trim() : undefined;
+        
+        // Use existing description if available (HigherGov, email bids, etc.)
+        if (!rawBomText && bid.description) {
+          rawBomText = bid.description;
+        }
+        
+        // For Unison bids, fetch details using authenticated scraper
+        if (bid.source?.toLowerCase() === 'unison' && !usePastedBom && !bid.description) {
+          try {
+            const details = await fetchBidDetails(bid.id, bid.url, 'unison');
+            rawBomText = details.description;
+          } catch (fetchErr) {
+            console.warn('Failed to fetch Unison details, trying direct analysis:', fetchErr);
+          }
+        }
+        
+        result = await analyzeBid(
+          bid.id, 
+          bid.url, 
+          bid.title,
+          rawBomText
+        );
+        
+        // Enhance with closeDate if AI didn't find deadline
+        if ((!result.deadline || result.deadline === 'Not specified') && bid.closeDate) {
+          result.deadline = new Date(bid.closeDate).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          if (result.key_dates) {
+            result.key_dates.submission_due = result.deadline;
+          }
+        }
       }
       
       setSummary(result);
