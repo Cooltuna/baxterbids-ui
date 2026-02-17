@@ -145,6 +145,19 @@ export async function fetchBidWithDocuments(externalId: string): Promise<Bid | n
   return bids.length > 0 ? bids[0] : null;
 }
 
+/**
+ * Fetch a single bid by its UUID and return transformed
+ */
+export async function fetchBidById(id: string): Promise<ReturnType<typeof transformBid> | null> {
+  const bids = await supabaseQuery<Bid>('bids', {
+    select: '*,sources(name)',
+    filter: `id=eq.${id}`,
+  });
+  
+  if (bids.length === 0) return null;
+  return transformBid(bids[0]);
+}
+
 export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
   // First get the source ID
   const sources = await supabaseQuery<Source>('sources', {

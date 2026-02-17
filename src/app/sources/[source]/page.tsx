@@ -233,6 +233,14 @@ export default function SourceDashboard() {
     setAnalyzingBidId(null);
   };
 
+  // Handle bid refresh (e.g., after enrichment)
+  const handleBidRefresh = (updatedBid: Bid) => {
+    // Update the bid in the bids array
+    setBids(prevBids => prevBids.map(b => b.id === updatedBid.id ? updatedBid : b));
+    // Update the selected bid (keeps modal open with fresh data)
+    setSelectedBid(updatedBid);
+  };
+
   const formatTimestamp = (ts?: string) => {
     if (!ts) return 'Never';
     const date = new Date(ts);
@@ -501,6 +509,7 @@ export default function SourceDashboard() {
         onClose={handleModalClose}
         autoAnalyze={autoAnalyze}
         onAnalysisComplete={handleAnalysisComplete}
+        onRefresh={handleBidRefresh}
       />
     </div>
   );

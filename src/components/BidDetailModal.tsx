@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Bid, BidSummary, LineItem, Vendor, BidDocument } from '@/types';
 import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getCachedVendors, getBidRFQs, fetchBidDetails, VendorMatrixResult, RFQRecord } from '@/lib/api';
-import { getDocumentUrl } from '@/lib/supabase';
+import { getDocumentUrl, fetchBidById } from '@/lib/supabase';
 import RFQDraftModal from './RFQDraftModal';
 import CustomVendorInput from './CustomVendorInput';
 
@@ -12,6 +12,7 @@ interface BidDetailModalProps {
   onClose: () => void;
   autoAnalyze?: boolean;
   onAnalysisComplete?: () => void;
+  onRefresh?: (updatedBid: Bid) => void;
 }
 
 // Helper function to get file icon based on type
@@ -52,7 +53,7 @@ function getFileIcon(fileType: string) {
 
 type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq';
 
-export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete }: BidDetailModalProps) {
+export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete, onRefresh }: BidDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [summary, setSummary] = useState<BidSummary | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
@@ -172,8 +173,14 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
       const result = await response.json();
       
       if (result.success) {
-        // Reload the page to get fresh data with enrichment
-        window.location.reload();
+        // Fetch updated bid data and refresh the modal
+        const updatedBid = await fetchBidById(bid.id);
+        if (updatedBid && onRefresh) {
+          onRefresh(updatedBid as Bid);
+        } else {
+          // Fallback to reload if no callback
+          window.location.reload();
+        }
       } else {
         setEnrichError(result.message || 'Failed to fetch pricing intelligence');
       }
