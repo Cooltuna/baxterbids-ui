@@ -120,9 +120,9 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
         id: `awardee-${record.awardee}`,
         name: record.awardee,
         type: 'awardee',
-        part_number: record.part_number,
-        last_price: record.unit_price,
-        set_aside: record.set_aside,
+        part_number: record.part_number || undefined,
+        last_price: record.unit_price || undefined,
+        set_aside: record.set_aside || undefined,
       });
       
       if (seenAwardees.size >= 4) break; // Only get last 4
@@ -380,6 +380,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
     setRfqVendor({
       name: vendorData.name,
       website: vendorData.cage ? `CAGE: ${vendorData.cage}` : undefined,
+      products: [], // Empty for enrichment vendors
     });
   };
 
