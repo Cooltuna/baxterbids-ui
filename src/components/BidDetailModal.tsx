@@ -579,8 +579,10 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                                   <tr className="border-b border-[var(--border)] text-left">
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Unit Price</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Part #</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Price</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Set-Aside</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
                                   </tr>
                                 </thead>
@@ -589,10 +591,18 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                                     <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
                                       <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
                                       <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
+                                      <td className="py-2 px-3 font-mono text-xs">{record.part_number || '-'}</td>
                                       <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
                                         ${record.unit_price?.toLocaleString() || '-'}
                                       </td>
                                       <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
+                                      <td className="py-2 px-3">
+                                        {record.set_aside && record.set_aside !== 'None' ? (
+                                          <span className="px-1.5 py-0.5 rounded text-xs bg-[var(--accent)]/10 text-[var(--accent)]">
+                                            {record.set_aside}
+                                          </span>
+                                        ) : '-'}
+                                      </td>
                                       <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
                                     </tr>
                                   ))}
@@ -870,8 +880,10 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                                   <tr className="border-b border-[var(--border)] text-left">
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Unit Price</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Part #</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Price</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
+                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Set-Aside</th>
                                     <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
                                   </tr>
                                 </thead>
@@ -880,10 +892,18 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                                     <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
                                       <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
                                       <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
+                                      <td className="py-2 px-3 font-mono text-xs">{record.part_number || '-'}</td>
                                       <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
                                         ${record.unit_price?.toLocaleString() || '-'}
                                       </td>
                                       <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
+                                      <td className="py-2 px-3">
+                                        {record.set_aside && record.set_aside !== 'None' ? (
+                                          <span className="px-1.5 py-0.5 rounded text-xs bg-[var(--accent)]/10 text-[var(--accent)]">
+                                            {record.set_aside}
+                                          </span>
+                                        ) : '-'}
+                                      </td>
                                       <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
                                     </tr>
                                   ))}
