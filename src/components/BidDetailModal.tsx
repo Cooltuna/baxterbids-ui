@@ -731,6 +731,11 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                       </div>
                     )}
 
+                    {/* DEBUG: Show enrichment status */}
+                    <div className="p-2 bg-yellow-100 text-yellow-800 text-xs rounded mb-2">
+                      DEBUG v2: enrichment={bid.enrichment ? 'YES' : 'NO'}
+                    </div>
+                    
                     {/* Pricing Intelligence from HigherGov */}
                     {bid.enrichment?.highergov && (
                       <div className="space-y-4 pt-4 border-t border-[var(--border)]">
