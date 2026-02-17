@@ -76,6 +76,62 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
   const [previewDoc, setPreviewDoc] = useState<{ url: string; name: string; type: string } | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [selectedEnrichmentVendors, setSelectedEnrichmentVendors] = useState<Set<string>>(new Set());
+
+  // Get suggested vendors from enrichment data (approved suppliers + last 4 unique awardees)
+  const getSuggestedVendors = () => {
+    if (!bid?.enrichment?.highergov) return [];
+    
+    const vendors: Array<{
+      id: string;
+      name: string;
+      type: 'supplier' | 'awardee';
+      cage?: string;
+      part_number?: string;
+      last_price?: number;
+      set_aside?: string;
+    }> = [];
+    
+    // Add approved suppliers
+    const suppliers = bid.enrichment.highergov.approved_suppliers || [];
+    suppliers.forEach((s: { name: string; cage?: string; part_number?: string }) => {
+      vendors.push({
+        id: `supplier-${s.cage || s.name}`,
+        name: s.name,
+        type: 'supplier',
+        cage: s.cage,
+        part_number: s.part_number,
+      });
+    });
+    
+    // Add last 4 unique awardees from purchase history
+    const history = bid.enrichment.highergov.purchase_history || [];
+    const seenAwardees = new Set<string>();
+    const supplierNames = new Set(suppliers.map((s: { name: string }) => s.name.toLowerCase()));
+    
+    for (const record of history) {
+      if (!record.awardee) continue;
+      const key = record.awardee.toLowerCase();
+      // Skip if already added or is an approved supplier
+      if (seenAwardees.has(key) || supplierNames.has(key)) continue;
+      seenAwardees.add(key);
+      
+      vendors.push({
+        id: `awardee-${record.awardee}`,
+        name: record.awardee,
+        type: 'awardee',
+        part_number: record.part_number,
+        last_price: record.unit_price,
+        set_aside: record.set_aside,
+      });
+      
+      if (seenAwardees.size >= 4) break; // Only get last 4
+    }
+    
+    return vendors;
+  };
+  
+  const suggestedVendors = getSuggestedVendors();
 
   // Check API availability on mount
   useEffect(() => {
@@ -311,6 +367,30 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
       setRfqItems(items);
     }
     setRfqVendor(vendor);
+  };
+
+  // Handle drafting RFQ for enrichment vendor (from HigherGov data)
+  const handleDraftEnrichmentRFQ = (vendorData: { name: string; cage?: string }) => {
+    if (!summary) return;
+    // Use all BOM items (or selected items if any selected)
+    const items = selectedItems.size > 0
+      ? Array.from(selectedItems).map(i => summary.line_items[i])
+      : summary.line_items;
+    setRfqItems(items);
+    setRfqVendor({
+      name: vendorData.name,
+      website: vendorData.cage ? `CAGE: ${vendorData.cage}` : undefined,
+    });
+  };
+
+  const toggleEnrichmentVendor = (id: string) => {
+    const newSelected = new Set(selectedEnrichmentVendors);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedEnrichmentVendors(newSelected);
   };
 
   const exportBOM = () => {
@@ -1164,6 +1244,95 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                     </div>
                   ))}
                 </div>
+
+                {/* Suggested Vendors from Enrichment (HigherGov bids) */}
+                {suggestedVendors.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-[var(--border)]">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">
+                          Suggested Vendors
+                        </h4>
+                        <p className="text-xs text-[var(--muted)] mt-1">
+                          From HigherGov approved suppliers & recent awardees
+                        </p>
+                      </div>
+                      {selectedEnrichmentVendors.size > 0 && (
+                        <button
+                          onClick={() => {
+                            // Draft RFQ for first selected vendor
+                            const firstSelected = suggestedVendors.find(v => selectedEnrichmentVendors.has(v.id));
+                            if (firstSelected) handleDraftEnrichmentRFQ(firstSelected);
+                          }}
+                          className="px-4 py-2 bg-[var(--success)] text-white rounded-lg font-medium hover:bg-[var(--success)]/90 transition-colors"
+                        >
+                          Draft RFQ ({selectedEnrichmentVendors.size} selected)
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {suggestedVendors.map((vendor) => (
+                        <div
+                          key={vendor.id}
+                          onClick={() => toggleEnrichmentVendor(vendor.id)}
+                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            selectedEnrichmentVendors.has(vendor.id)
+                              ? 'bg-[var(--success)]/5 border-[var(--success)]/50'
+                              : 'bg-[var(--card)] border-[var(--border)] hover:border-[var(--success)]/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedEnrichmentVendors.has(vendor.id)}
+                              onChange={() => toggleEnrichmentVendor(vendor.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 rounded border-[var(--border)] text-[var(--success)] focus:ring-[var(--success)]"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-[var(--foreground)]">{vendor.name}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                  vendor.type === 'supplier'
+                                    ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                                    : 'bg-[var(--success)]/10 text-[var(--success)]'
+                                }`}>
+                                  {vendor.type === 'supplier' ? 'Approved Supplier' : 'Previous Awardee'}
+                                </span>
+                                {vendor.set_aside && vendor.set_aside !== 'None' && (
+                                  <span className="px-1.5 py-0.5 rounded text-xs bg-purple-500/10 text-purple-500">
+                                    {vendor.set_aside}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-sm text-[var(--muted)]">
+                                {vendor.cage && (
+                                  <span className="font-mono">CAGE: {vendor.cage}</span>
+                                )}
+                                {vendor.part_number && (
+                                  <span>Part #: {vendor.part_number}</span>
+                                )}
+                                {vendor.last_price && (
+                                  <span className="text-[var(--success)]">Last: ${vendor.last_price.toLocaleString()}</span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDraftEnrichmentRFQ(vendor);
+                              }}
+                              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-[var(--success)] text-[var(--success)] hover:bg-[var(--success)]/10 transition-colors"
+                            >
+                              Draft RFQ
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
