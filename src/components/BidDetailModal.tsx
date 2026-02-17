@@ -308,6 +308,11 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
       );
       
       // Enhance result with bid data for HigherGov bids
+      console.log('[BOM Debug] bid.closeDate:', bid.closeDate);
+      console.log('[BOM Debug] bid.enrichment:', bid.enrichment);
+      console.log('[BOM Debug] result.deadline before:', result.deadline);
+      console.log('[BOM Debug] result.line_items before:', result.line_items);
+      
       // 1. Use bid.closeDate if deadline not found by AI
       if ((!result.deadline || result.deadline === 'Not specified') && bid.closeDate) {
         result.deadline = new Date(bid.closeDate).toLocaleDateString('en-US', {
@@ -319,19 +324,24 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
         if (result.key_dates) {
           result.key_dates.submission_due = result.deadline;
         }
+        console.log('[BOM Debug] Set deadline from closeDate:', result.deadline);
       }
       
       // 2. For HigherGov bids with enrichment, add quantity from enrichment to line items
       if (bid.enrichment?.highergov?.bid_info) {
         const enrichQty = bid.enrichment.highergov.bid_info.quantity;
         const enrichUnit = bid.enrichment.highergov.bid_info.unit || 'EA';
+        console.log('[BOM Debug] enrichQty:', enrichQty, 'enrichUnit:', enrichUnit);
         if (enrichQty && result.line_items) {
           result.line_items = result.line_items.map((item: LineItem) => ({
             ...item,
             quantity: item.quantity || String(enrichQty),
             unit: item.unit || enrichUnit
           }));
+          console.log('[BOM Debug] Updated line_items:', result.line_items);
         }
+      } else {
+        console.log('[BOM Debug] No enrichment data found');
       }
       
       setSummary(result);
