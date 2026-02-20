@@ -31,15 +31,18 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     // Instantly hide the bid (optimistic update)
     setHiddenBids(prev => new Set([...prev, bid.id]));
     
-    // Update in background - both dismiss and set status to No Bid
+    // Update in background - dismiss is the critical call
     try {
-      // Dismiss prevents scraper from re-adding
-      await dismissBid(bid.id);
-      // Also update status for backwards compatibility
-      await updateBidStatus(bid.id, 'No Bid');
+      // Dismiss prevents scraper from re-adding (sets dismissed=true + status='no bid')
+      const result = await dismissBid(bid.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Dismiss failed');
+      }
+      // Also try to update status via Python API (non-critical, don't fail on error)
+      try { await updateBidStatus(bid.id, 'No Bid'); } catch {}
       onBidUpdated?.();
     } catch (error) {
-      console.error('Failed to update bid:', error);
+      console.error('Failed to dismiss bid:', error);
       // On error, show the bid again
       setHiddenBids(prev => {
         const next = new Set(prev);
