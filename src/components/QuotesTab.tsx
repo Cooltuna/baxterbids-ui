@@ -525,7 +525,41 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                   </>
                 )}
                 {quote.status === 'accepted' && (
-                  <span className="text-sm text-[var(--success)] font-medium">✅ Awarded</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-[var(--success)] font-medium">✅ Awarded</span>
+                    {awardResult?.excelFile ? (
+                      <a
+                        href={`${API_BASE}/awards/download/${awardResult.excelFile}`}
+                        download
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                      >
+                        ⬇️ Download Excel
+                      </a>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await fetch(`${API_BASE}/awards/generate-excel`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ bid_id: bidId }),
+                            });
+                            const data = await res.json();
+                            if (data.success && data.excel_file) {
+                              window.open(`${API_BASE}/awards/download/${data.excel_file}`, '_blank');
+                            } else {
+                              alert(data.detail || 'Failed to generate Excel');
+                            }
+                          } catch (e: any) {
+                            alert(e.message || 'Network error');
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                      >
+                        ⬇️ Re-generate Excel
+                      </button>
+                    )}
+                  </div>
                 )}
                 {quote.status === 'rejected' && (
                   <button
