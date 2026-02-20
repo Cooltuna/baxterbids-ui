@@ -223,6 +223,7 @@ export function transformBid(bid: Bid) {
   
   return {
     id: bid.id,  // Use Supabase UUID, not external_id
+    external_id: bid.external_id || '',
     title: bid.title,
     agency: bid.agency || 'MBTA',
     closeDate: bid.close_date || '',

@@ -53,6 +53,7 @@ export interface Bid {
   url: string;
   sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'No Bid';
   isAnalyzed?: boolean;
+  external_id?: string;
   source?: string;
   description?: string;
   documents?: BidDocument[];

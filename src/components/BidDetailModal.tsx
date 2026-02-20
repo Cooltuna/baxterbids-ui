@@ -497,7 +497,12 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
               <h2 className="text-xl font-semibold text-[var(--foreground)]">
                 {bid.title}
               </h2>
-              <p className="text-sm text-[var(--muted)] mt-1">
+              {bid.external_id && (
+                <p className="text-sm font-mono text-[var(--accent)] mt-1">
+                  {bid.source === 'Unison' ? `Buy# ${bid.external_id}` : bid.external_id}
+                </p>
+              )}
+              <p className="text-sm text-[var(--muted)] mt-0.5">
                 {bid.agency}{bid.value ? ` • ${bid.value}` : ''}
               </p>
             </div>
