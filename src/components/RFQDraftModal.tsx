@@ -39,6 +39,7 @@ export default function RFQDraftModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [attachExcel, setAttachExcel] = useState(items.length > 10);  // Auto-enable for large BOMs
 
   // Generate draft when modal opens
   useEffect(() => {
@@ -109,7 +110,14 @@ export default function RFQDraftModal({
           vendor_email: vendorEmail,
           subject,
           body,
-          items: items.map(i => i.description)
+          items: items.map(i => i.description),
+          attach_excel: attachExcel,
+          line_items: attachExcel ? items.map(i => ({
+            description: i.description,
+            quantity: String(i.quantity || ''),
+            unit: i.unit || '',
+            specifications: i.specifications || ''
+          })) : undefined
         })
       });
 
@@ -215,6 +223,11 @@ export default function RFQDraftModal({
                     )}
                   </ul>
                 </div>
+                {attachExcel && (
+                  <div className="p-3 rounded-lg bg-[var(--success)]/5 border border-[var(--success)]/30">
+                    <p className="text-sm text-[var(--success)]">📎 Excel BOM spreadsheet will be attached ({items.length} items)</p>
+                  </div>
+                )}
               </div>
             ) : (
               /* Edit Mode */
@@ -256,8 +269,32 @@ export default function RFQDraftModal({
                     className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm font-mono focus:outline-none focus:border-[var(--accent)] resize-none"
                   />
                 </div>
+                {/* Attachment Options */}
+                <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={attachExcel}
+                      onChange={(e) => setAttachExcel(e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)]"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-[var(--foreground)]">
+                        📎 Attach BOM as Excel spreadsheet
+                      </span>
+                      <p className="text-xs text-[var(--muted)]">
+                        Vendor can fill in pricing & lead times directly in the spreadsheet
+                      </p>
+                    </div>
+                  </label>
+                  {attachExcel && (
+                    <p className="text-xs text-[var(--success)] ml-7">
+                      ✓ Excel file will be attached with {items.length} items, Unit Price & Lead Time columns for vendor to fill in
+                    </p>
+                  )}
+                </div>
                 <div className="text-xs text-[var(--muted)]">
-                  📦 {items.length} items will be included in this RFQ
+                  📦 {items.length} items {attachExcel ? 'in email body + Excel attachment' : 'will be included in this RFQ'}
                 </div>
               </div>
             )}
