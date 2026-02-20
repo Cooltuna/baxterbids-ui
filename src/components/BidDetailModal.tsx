@@ -1398,7 +1398,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                 )}
 
                 {/* Add Custom Vendor (BOM tab) */}
-                {bomItems.length > 0 && (
+                {summary && summary.line_items.length > 0 && (
                   <div className="mt-6">
                     <CustomVendorInput 
                       onDraftRFQ={(name, email) => {
