@@ -355,35 +355,9 @@ export default function SourceDashboard() {
             ))}
           </div>
 
-          {/* View toggle + Search (hide on login tab) */}
+          {/* Search (hide on login tab) */}
           {statusFilter !== 'login' && (
-            <div className="ml-auto flex items-center gap-3">
-              {/* View Mode Toggle */}
-              <div className="flex rounded-lg border border-[var(--border)] overflow-hidden">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-2 text-xs font-medium transition-all ${
-                    viewMode === 'table'
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
-                  }`}
-                  title="Table View"
-                >
-                  📋 Table
-                </button>
-                <button
-                  onClick={() => setViewMode('queue')}
-                  className={`px-3 py-2 text-xs font-medium transition-all ${
-                    viewMode === 'queue'
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
-                  }`}
-                  title="Workflow Queue"
-                >
-                  🔄 Queue
-                </button>
-              </div>
-
+            <div className="ml-auto">
               <div className="relative">
                 <input
                   type="text"
@@ -501,6 +475,35 @@ export default function SourceDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 Run Scraper
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* View Mode Toggle */}
+        {statusFilter !== 'login' && (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-sm text-[var(--muted)]">View:</span>
+            <div className="flex rounded-lg border border-[var(--border)] overflow-hidden">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                📋 Table
+              </button>
+              <button
+                onClick={() => setViewMode('queue')}
+                className={`px-4 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'queue'
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                🔄 Workflow Queue
               </button>
             </div>
           </div>
