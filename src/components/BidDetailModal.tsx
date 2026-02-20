@@ -1991,7 +1991,7 @@ ${rfq.notes || 'No details available'}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-[var(--muted)]">
                           {item.quantity && <span>Qty: {item.quantity}</span>}
-                          {item.unit && <span>{item.unit}</span>}
+                          {'unit' in item && (item as any).unit && <span>{(item as any).unit}</span>}
                           {item.specifications && <span>{item.specifications}</span>}
                         </div>
                       </div>
