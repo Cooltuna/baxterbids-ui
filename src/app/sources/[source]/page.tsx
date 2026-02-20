@@ -23,7 +23,7 @@ const SOURCE_NAMES: Record<string, string> = {
   'caci': 'CACI',
   'highergov-hubzone': 'HigherGov HUBZone',
   'highergov hubzone': 'HigherGov HUBZone', // Handle URL-decoded space
-  'sam.gov': 'SAM.gov',
+  'highergov-idiq': 'HigherGov IDIQ',
 };
 
 export default function SourceDashboard() {
