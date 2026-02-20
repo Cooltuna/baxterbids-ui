@@ -133,3 +133,63 @@ export interface RFQDraft {
   bid_id: string;
   created_at: string;
 }
+
+// Quote Workflow Types (Phase B/C)
+export interface QuoteItem {
+  id: string;
+  quote_id: string;
+  line_number: number | null;
+  part_number: string;
+  description: string;
+  qty: number;
+  uom: string;
+  unit_price: number | null;
+  extended_price: number | null;
+  lead_time: string | null;
+  manufacturer: string;
+  condition: string;
+  availability: string | null;
+  moq: number | null;
+  notes: string;
+  is_best_price: boolean;
+  created_at: string;
+}
+
+export interface VendorQuote {
+  id: string;
+  rfq_id: string | null;
+  bid_id: string;
+  vendor_name: string;
+  vendor_email: string;
+  response_date: string;
+  raw_email_id: string;
+  attachment_urls: string[];
+  shipping: number | null;
+  terms: string | null;
+  valid_until: string | null;
+  status: 'pending' | 'accepted' | 'partial' | 'rejected' | 'countered' | 'expired';
+  total_cost: number | null;
+  parse_confidence: number | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  // Joined
+  items?: QuoteItem[];
+}
+
+export interface QuoteComparison {
+  part_key: string; // part_number or description
+  part_number: string;
+  description: string;
+  qty: number;
+  vendors: {
+    vendor_name: string;
+    quote_id: string;
+    item_id: string;
+    unit_price: number | null;
+    extended_price: number | null;
+    lead_time: string | null;
+    manufacturer: string;
+    is_best_price: boolean;
+  }[];
+}

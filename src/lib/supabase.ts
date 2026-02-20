@@ -280,6 +280,56 @@ export function transformRFQ(rfq: any) {
 }
 
 /**
+ * Fetch vendor quotes for a bid (with line items)
+ */
+export async function fetchQuotesForBid(bidId: string): Promise<any[]> {
+  // Get quotes
+  const quotes = await supabaseQuery<any>('rfq_quotes', {
+    filter: `bid_id=eq.${bidId}`,
+    order: 'created_at.desc',
+  });
+
+  // Get all quote items for these quotes
+  if (quotes.length > 0) {
+    const quoteIds = quotes.map((q: any) => q.id).join(',');
+    const items = await supabaseQuery<any>('rfq_quote_items', {
+      filter: `quote_id=in.(${quoteIds})`,
+      order: 'line_number.asc',
+    });
+
+    // Attach items to their quotes
+    const itemsByQuote: Record<string, any[]> = {};
+    for (const item of items) {
+      if (!itemsByQuote[item.quote_id]) itemsByQuote[item.quote_id] = [];
+      itemsByQuote[item.quote_id].push(item);
+    }
+    for (const quote of quotes) {
+      quote.items = itemsByQuote[quote.id] || [];
+    }
+  }
+
+  return quotes;
+}
+
+/**
+ * Update quote status
+ */
+export async function updateQuoteStatus(quoteId: string, status: string): Promise<boolean> {
+  const url = `${SUPABASE_URL}/rest/v1/rfq_quotes?id=eq.${quoteId}`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
+  });
+  return response.ok;
+}
+
+/**
  * Dismiss a bid (hides it from the dashboard without deleting)
  */
 export async function dismissBid(bidId: string, sourceId: string): Promise<boolean> {

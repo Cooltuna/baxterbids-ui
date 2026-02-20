@@ -6,6 +6,7 @@ import { analyzeBid, batchSearchVendors, checkApiHealth, getCachedAnalysis, getC
 import { getDocumentUrl, fetchBidById } from '@/lib/supabase';
 import RFQDraftModal from './RFQDraftModal';
 import CustomVendorInput from './CustomVendorInput';
+import QuotesTab from './QuotesTab';
 
 interface BidDetailModalProps {
   bid: Bid | null;
@@ -51,7 +52,7 @@ function getFileIcon(fileType: string) {
   );
 }
 
-type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq';
+type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq' | 'quotes';
 
 export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete, onRefresh }: BidDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
@@ -590,6 +591,17 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                 {tab === 'rfq' && `📝 RFQ ${sentRFQs.length > 0 ? `(${sentRFQs.length})` : ''}`}
               </button>
             ))}
+            {/* Quotes tab - always visible (doesn't require analysis) */}
+            <button
+              onClick={() => setActiveTab('quotes')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'quotes'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+              }`}
+            >
+              💰 Quotes
+            </button>
           </div>
 
           {/* Content */}
@@ -1835,6 +1847,11 @@ ${rfq.notes || 'No details available'}
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Quotes Tab */}
+            {activeTab === 'quotes' && bid && (
+              <QuotesTab bidId={bid.id} bidTitle={bid.title} />
             )}
           </div>
 
