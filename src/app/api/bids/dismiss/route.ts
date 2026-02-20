@@ -13,13 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'bidId required' }, { status: 400 });
     }
     
-    // Build filter - if sourceId provided, use it; otherwise just match bidId
-    let filter = `external_id=eq.${encodeURIComponent(bidId)}`;
-    if (sourceId) {
-      filter += `&source_id=eq.${sourceId}`;
-    }
-    
-    const url = `${SUPABASE_URL}/rest/v1/bids?${filter}`;
+    // bidId is the Supabase UUID (primary key)
+    const url = `${SUPABASE_URL}/rest/v1/bids?id=eq.${encodeURIComponent(bidId)}`;
     
     const response = await fetch(url, {
       method: 'PATCH',
