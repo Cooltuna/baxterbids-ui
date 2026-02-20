@@ -67,7 +67,7 @@ function classifyBid(bid: Bid, rfqSummary: RFQSummary): WorkflowStage {
   if (status === 'won' || status === 'awarded') return 'awarded';
   
   // If we have quotes received
-  if (rfqInfo && rfqInfo.received > 0) return 'quotes_received';
+  if (rfqInfo && rfqInfo.responded > 0) return 'quotes_received';
   
   // If RFQs were sent
   if (rfqInfo && rfqInfo.sent > 0) return 'rfq_sent';
@@ -229,11 +229,8 @@ export default function WorkflowQueue({ bids, onSelectBid, onMarkInterested, rfq
                               {rfqInfo.sent > 0 && (
                                 <span className="text-xs text-purple-400">📤 {rfqInfo.sent} RFQ{rfqInfo.sent > 1 ? 's' : ''} sent</span>
                               )}
-                              {rfqInfo.received > 0 && (
-                                <span className="text-xs text-emerald-400">💰 {rfqInfo.received} quote{rfqInfo.received > 1 ? 's' : ''} in</span>
-                              )}
-                              {rfqInfo.overdue > 0 && (
-                                <span className="text-xs text-red-400">⏰ {rfqInfo.overdue} overdue</span>
+                              {rfqInfo.responded > 0 && (
+                                <span className="text-xs text-emerald-400">💰 {rfqInfo.responded} quote{rfqInfo.responded > 1 ? 's' : ''} in</span>
                               )}
                             </div>
                           )}
