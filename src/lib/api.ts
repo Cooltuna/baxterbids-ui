@@ -35,7 +35,13 @@ async function fetchApi<T>(
     
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      throw new ApiError(response.status, error.detail || response.statusText);
+      const detail = error.detail;
+      const message = typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: { msg?: string; loc?: string[] }) => d.msg || JSON.stringify(d)).join('; ')
+          : response.statusText;
+      throw new ApiError(response.status, message);
     }
     
     return response.json();

@@ -115,7 +115,9 @@ export default function RFQDraftModal({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || 'Failed to send RFQ');
+        const detail = data.detail;
+        const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ') : 'Failed to send RFQ';
+        throw new Error(msg);
       }
 
       setSuccess(true);
