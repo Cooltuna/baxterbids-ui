@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { VendorQuote, QuoteItem, QuoteComparison } from '@/types';
 import { fetchQuotesForBid, updateQuoteStatus } from '@/lib/supabase';
 
+const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? 'https://api.logisticollc.com'
+  : 'http://localhost:8000';
+
 interface QuotesTabProps {
   bidId: string;
   bidTitle: string;
@@ -15,6 +19,10 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'comparison' | 'list'>('comparison');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [isAwarding, setIsAwarding] = useState(false);
+  const [awardResult, setAwardResult] = useState<{ success: boolean; message: string; excelFile?: string } | null>(null);
+  const [marginPct, setMarginPct] = useState(20);
+  const [showAwardModal, setShowAwardModal] = useState<{ type: 'single' | 'best-mix'; quoteId?: string; vendorName?: string } | null>(null);
 
   // Load quotes
   useEffect(() => {
@@ -86,6 +94,69 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
       ));
     }
     setUpdatingStatus(null);
+  }
+
+  async function handleAcceptVendor(quoteId: string) {
+    setIsAwarding(true);
+    setAwardResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/awards/accept-vendor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bid_id: bidId,
+          quote_id: quoteId,
+          margin_pct: marginPct,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAwardResult({
+          success: true,
+          message: `✅ Awarded ${data.awards_created} line(s). Excel generated!`,
+          excelFile: data.excel_file,
+        });
+        loadQuotes(); // Refresh to show updated statuses
+      } else {
+        setAwardResult({ success: false, message: data.detail || 'Award failed' });
+      }
+    } catch (e: any) {
+      setAwardResult({ success: false, message: e.message || 'Network error' });
+    } finally {
+      setIsAwarding(false);
+      setShowAwardModal(null);
+    }
+  }
+
+  async function handleAcceptBestMix() {
+    setIsAwarding(true);
+    setAwardResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/awards/accept-best-mix`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bid_id: bidId,
+          margin_pct: marginPct,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAwardResult({
+          success: true,
+          message: `✅ Best mix award: ${data.awards_created} line(s) across vendors. Excel generated!`,
+          excelFile: data.excel_file,
+        });
+        loadQuotes();
+      } else {
+        setAwardResult({ success: false, message: data.detail || 'Award failed' });
+      }
+    } catch (e: any) {
+      setAwardResult({ success: false, message: e.message || 'Network error' });
+    } finally {
+      setIsAwarding(false);
+      setShowAwardModal(null);
+    }
   }
 
   // Format currency
@@ -438,18 +509,11 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                 {quote.status === 'pending' && (
                   <>
                     <button
-                      onClick={() => handleStatusChange(quote.id, 'accepted')}
-                      disabled={updatingStatus === quote.id}
+                      onClick={() => setShowAwardModal({ type: 'single', quoteId: quote.id, vendorName: quote.vendor_name })}
+                      disabled={isAwarding || !quote.items || quote.items.length === 0}
                       className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--success)] text-white hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50"
                     >
-                      ✅ Accept
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(quote.id, 'partial')}
-                      disabled={updatingStatus === quote.id}
-                      className="px-4 py-2 text-sm font-medium rounded-lg border border-blue-500 text-blue-500 hover:bg-blue-500/10 transition-colors disabled:opacity-50"
-                    >
-                      📋 Partial Accept
+                      ✅ Accept & Generate Excel
                     </button>
                     <button
                       onClick={() => handleStatusChange(quote.id, 'rejected')}
@@ -460,7 +524,10 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                     </button>
                   </>
                 )}
-                {quote.status !== 'pending' && (
+                {quote.status === 'accepted' && (
+                  <span className="text-sm text-[var(--success)] font-medium">✅ Awarded</span>
+                )}
+                {quote.status === 'rejected' && (
                   <button
                     onClick={() => handleStatusChange(quote.id, 'pending')}
                     disabled={updatingStatus === quote.id}
@@ -474,6 +541,172 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
           </div>
         ))}
       </div>
+
+      {/* Award Result Banner */}
+      {awardResult && (
+        <div className={`p-4 rounded-xl border ${
+          awardResult.success
+            ? 'bg-[var(--success)]/10 border-[var(--success)]/30'
+            : 'bg-[var(--danger)]/10 border-[var(--danger)]/30'
+        }`}>
+          <div className="flex items-center justify-between">
+            <p className={`font-medium ${awardResult.success ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+              {awardResult.message}
+            </p>
+            <div className="flex items-center gap-2">
+              {awardResult.excelFile && (
+                <a
+                  href={`${API_BASE}/awards/download/${awardResult.excelFile}`}
+                  download
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors"
+                >
+                  ⬇️ Download Odoo Excel
+                </a>
+              )}
+              <button
+                onClick={() => setAwardResult(null)}
+                className="text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Best Mix Button (when multiple vendors have line items) */}
+      {quotes.filter(q => q.status === 'pending' && q.items && q.items.length > 0).length > 1 && !awardResult && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-[var(--accent)]/10 to-[var(--success)]/10 border border-[var(--accent)]/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-semibold text-[var(--foreground)]">🏆 Split Award — Best Price Mix</h4>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                Auto-select the cheapest price per line item across all vendors
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAwardModal({ type: 'best-mix' })}
+              disabled={isAwarding}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 transition-colors disabled:opacity-50"
+            >
+              🏆 Accept Best Mix
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Award Confirmation Modal */}
+      {showAwardModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isAwarding && setShowAwardModal(null)}
+          />
+          <div className="relative bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 border-b border-[var(--border)]">
+              <h3 className="text-lg font-bold text-[var(--foreground)]">
+                {showAwardModal.type === 'single'
+                  ? `Award to ${showAwardModal.vendorName}`
+                  : '🏆 Best Price Mix Award'}
+              </h3>
+              <p className="text-sm text-[var(--muted)] mt-1">
+                {showAwardModal.type === 'single'
+                  ? 'Accept all line items from this vendor and generate Odoo Excel.'
+                  : 'Select the cheapest price per line across all vendors.'}
+              </p>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* Margin selector */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+                  Markup / Margin
+                </label>
+                <div className="flex items-center gap-3">
+                  {[15, 20, 25, 30].map((pct) => (
+                    <button
+                      key={pct}
+                      onClick={() => setMarginPct(pct)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        marginPct === pct
+                          ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                          : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
+                      }`}
+                    >
+                      {pct}%
+                    </button>
+                  ))}
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      value={marginPct}
+                      onChange={(e) => setMarginPct(Number(e.target.value))}
+                      className="w-16 px-2 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-center"
+                      min={0}
+                      max={100}
+                    />
+                    <span className="text-sm text-[var(--muted)]">%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              {showAwardModal.type === 'single' && showAwardModal.quoteId && (() => {
+                const q = quotes.find(q => q.id === showAwardModal.quoteId);
+                if (!q || !q.items) return null;
+                const itemTotal = q.items.reduce((s, i) => s + (Number(i.extended_price) || 0), 0);
+                const sellTotal = itemTotal * (1 + marginPct / 100);
+                return (
+                  <div className="p-3 rounded-lg bg-[var(--background)] text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--muted)]">Cost Total</span>
+                      <span className="font-medium">{fmt(itemTotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--muted)]">Sell Total ({marginPct}% markup)</span>
+                      <span className="font-bold text-[var(--success)]">{fmt(sellTotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--muted)]">Margin</span>
+                      <span className="font-medium text-[var(--accent)]">{fmt(sellTotal - itemTotal)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="px-6 py-4 border-t border-[var(--border)] flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowAwardModal(null)}
+                disabled={isAwarding}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background)] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (showAwardModal.type === 'single' && showAwardModal.quoteId) {
+                    handleAcceptVendor(showAwardModal.quoteId);
+                  } else {
+                    handleAcceptBestMix();
+                  }
+                }}
+                disabled={isAwarding}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--success)] text-white hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isAwarding ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>✅ Confirm Award & Generate Excel</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
