@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import BidTable from '@/components/BidTable';
+import WorkflowQueue from '@/components/WorkflowQueue';
 import BidDetailModal from '@/components/BidDetailModal';
 import { Bid } from '@/types';
 import { getRFQSummary, RFQSummary } from '@/lib/api';
@@ -46,6 +47,7 @@ export default function SourceDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
   const [analyzingBidId, setAnalyzingBidId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'queue'>('table');
   
   // CACI Login state
   const [caciStatus, setCaciStatus] = useState<'idle' | 'launching' | 'waiting' | 'success' | 'error'>('idle');
@@ -353,9 +355,35 @@ export default function SourceDashboard() {
             ))}
           </div>
 
-          {/* Search (hide on login tab) */}
+          {/* View toggle + Search (hide on login tab) */}
           {statusFilter !== 'login' && (
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
+              {/* View Mode Toggle */}
+              <div className="flex rounded-lg border border-[var(--border)] overflow-hidden">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-2 text-xs font-medium transition-all ${
+                    viewMode === 'table'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
+                  }`}
+                  title="Table View"
+                >
+                  📋 Table
+                </button>
+                <button
+                  onClick={() => setViewMode('queue')}
+                  className={`px-3 py-2 text-xs font-medium transition-all ${
+                    viewMode === 'queue'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)]'
+                  }`}
+                  title="Workflow Queue"
+                >
+                  🔄 Queue
+                </button>
+              </div>
+
               <div className="relative">
                 <input
                   type="text"
@@ -478,8 +506,8 @@ export default function SourceDashboard() {
           </div>
         )}
 
-        {/* Bid Table (hide on login tab) */}
-        {statusFilter !== 'login' && (
+        {/* Bid Table or Workflow Queue (hide on login tab) */}
+        {statusFilter !== 'login' && viewMode === 'table' && (
           <BidTable 
             bids={filteredBids} 
             searchQuery={searchQuery} 
@@ -490,6 +518,14 @@ export default function SourceDashboard() {
             rfqSummary={rfqSummary}
             showSource={false}
             analyzingBidId={analyzingBidId}
+          />
+        )}
+        {statusFilter !== 'login' && viewMode === 'queue' && (
+          <WorkflowQueue
+            bids={filteredBids}
+            onSelectBid={setSelectedBid}
+            onMarkInterested={handleMarkInterested}
+            rfqSummary={rfqSummary}
           />
         )}
       </main>
