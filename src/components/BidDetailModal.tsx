@@ -67,6 +67,8 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
   const [bomText, setBomText] = useState('');
   const [rfqVendor, setRfqVendor] = useState<Vendor | null>(null);
   const [rfqItems, setRfqItems] = useState<LineItem[]>([]);
+  const [pendingRfqVendor, setPendingRfqVendor] = useState<(Vendor & { can_supply?: number[] }) | null>(null);
+  const [rfqItemSelection, setRfqItemSelection] = useState<Set<number>>(new Set());
   const [isFromCache, setIsFromCache] = useState(false);
   const [isLoadingCache, setIsLoadingCache] = useState(false);
   const [sentRFQs, setSentRFQs] = useState<RFQRecord[]>([]);
@@ -420,30 +422,44 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
   };
 
   const handleDraftRFQ = (vendor: Vendor & { can_supply?: number[] }) => {
-    // Get the items this vendor can supply
-    if (vendorMatrix && vendor.can_supply) {
-      const vendorItems = vendor.can_supply.map(num => vendorMatrix.items[num - 1]).filter(Boolean);
-      setRfqItems(vendorItems as LineItem[]);
-    } else if (summary) {
-      // If no vendor matrix, use selected items
-      const items = Array.from(selectedItems).map(i => summary.line_items[i]);
-      setRfqItems(items);
+    if (!summary) return;
+    // Open item selector with matched items pre-checked
+    const allItems = vendorMatrix ? vendorMatrix.items : summary.line_items;
+    const preSelected = new Set<number>();
+    if (vendor.can_supply && vendor.can_supply.length > 0) {
+      vendor.can_supply.forEach(num => preSelected.add(num - 1)); // convert 1-indexed to 0-indexed
+    } else {
+      // No match data — select all
+      allItems.forEach((_, i) => preSelected.add(i));
     }
-    setRfqVendor(vendor);
+    setRfqItemSelection(preSelected);
+    setPendingRfqVendor(vendor);
+  };
+
+  const confirmRfqItems = () => {
+    if (!pendingRfqVendor || rfqItemSelection.size === 0) return;
+    const allItems = vendorMatrix ? vendorMatrix.items : (summary?.line_items || []);
+    const selected = Array.from(rfqItemSelection).sort((a, b) => a - b).map(i => allItems[i]).filter(Boolean);
+    setRfqItems(selected as LineItem[]);
+    setRfqVendor(pendingRfqVendor);
+    setPendingRfqVendor(null);
   };
 
   // Handle drafting RFQ for enrichment vendor (from HigherGov data)
   const handleDraftEnrichmentRFQ = (vendorData: { name: string; cage?: string }) => {
     if (!summary) return;
-    // Use all BOM items (or selected items if any selected)
-    const items = selectedItems.size > 0
-      ? Array.from(selectedItems).map(i => summary.line_items[i])
-      : summary.line_items;
-    setRfqItems(items);
-    setRfqVendor({
+    // Open item selector — pre-check selected BOM items or all
+    const preSelected = new Set<number>();
+    if (selectedItems.size > 0) {
+      selectedItems.forEach(i => preSelected.add(i));
+    } else {
+      summary.line_items.forEach((_, i) => preSelected.add(i));
+    }
+    setRfqItemSelection(preSelected);
+    setPendingRfqVendor({
       name: vendorData.name,
       website: vendorData.cage ? `CAGE: ${vendorData.cage}` : undefined,
-      products: [], // Empty for enrichment vendors
+      products: [],
     });
   };
 
@@ -1902,6 +1918,113 @@ ${rfq.notes || 'No details available'}
           </div>
         </div>
       </div>
+
+      {/* RFQ Item Selector Modal */}
+      {pendingRfqVendor && summary && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPendingRfqVendor(null)} />
+          <div className="relative min-h-screen flex items-center justify-center p-4">
+            <div className="relative w-full max-w-2xl bg-[var(--background)] rounded-2xl border border-[var(--border)] shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border)] flex-shrink-0">
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--foreground)]">Select Items for RFQ</h2>
+                  <p className="text-sm text-[var(--muted)]">To: {pendingRfqVendor.name}</p>
+                </div>
+                <button onClick={() => setPendingRfqVendor(null)} className="p-2 rounded-lg hover:bg-[var(--card)] text-[var(--muted)]">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Select All */}
+              <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rfqItemSelection.size === (vendorMatrix ? vendorMatrix.items : summary.line_items).length}
+                    onChange={() => {
+                      const allItems = vendorMatrix ? vendorMatrix.items : summary.line_items;
+                      if (rfqItemSelection.size === allItems.length) {
+                        setRfqItemSelection(new Set());
+                      } else {
+                        setRfqItemSelection(new Set(allItems.map((_, i) => i)));
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)]"
+                  />
+                  <span className="text-sm font-medium text-[var(--foreground)]">Select All</span>
+                </label>
+                <span className="text-sm text-[var(--muted)]">
+                  {rfqItemSelection.size}/{(vendorMatrix ? vendorMatrix.items : summary.line_items).length} items selected
+                </span>
+              </div>
+
+              {/* Item List */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-1">
+                {(vendorMatrix ? vendorMatrix.items : summary.line_items).map((item, idx) => {
+                  const isMatched = pendingRfqVendor.can_supply?.includes(idx + 1);
+                  return (
+                    <label
+                      key={idx}
+                      className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                        rfqItemSelection.has(idx)
+                          ? 'bg-[var(--accent)]/5 border border-[var(--accent)]/30'
+                          : 'bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]/20'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={rfqItemSelection.has(idx)}
+                        onChange={() => {
+                          const next = new Set(rfqItemSelection);
+                          if (next.has(idx)) next.delete(idx); else next.add(idx);
+                          setRfqItemSelection(next);
+                        }}
+                        className="mt-0.5 w-4 h-4 rounded border-[var(--border)] text-[var(--accent)]"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-[var(--accent)]">#{idx + 1}</span>
+                          <span className="text-sm text-[var(--foreground)] truncate">{item.description}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-[var(--muted)]">
+                          {item.quantity && <span>Qty: {item.quantity}</span>}
+                          {item.unit && <span>{item.unit}</span>}
+                          {item.specifications && <span>{item.specifications}</span>}
+                        </div>
+                      </div>
+                      {isMatched && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-[var(--success)]/10 text-[var(--success)] whitespace-nowrap">
+                          Matched
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between p-4 border-t border-[var(--border)] flex-shrink-0">
+                <button
+                  onClick={() => setPendingRfqVendor(null)}
+                  className="px-4 py-2 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--card)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRfqItems}
+                  disabled={rfqItemSelection.size === 0}
+                  className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--accent)] text-white hover:bg-[var(--accent)]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue with {rfqItemSelection.size} Items →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* RFQ Draft Modal */}
       {rfqVendor && summary && (
