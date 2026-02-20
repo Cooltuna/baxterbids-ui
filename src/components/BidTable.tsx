@@ -36,7 +36,7 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
       // Dismiss prevents scraper from re-adding (sets dismissed=true + status='no bid')
       const result = await dismissBid(bid.id);
       if (!result.success) {
-        throw new Error(result.error || 'Dismiss failed');
+        throw new Error((result as any).error || 'Dismiss failed');
       }
       // Also try to update status via Python API (non-critical, don't fail on error)
       try { await updateBidStatus(bid.id, 'No Bid'); } catch {}
