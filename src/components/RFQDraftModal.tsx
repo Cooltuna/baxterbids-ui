@@ -60,10 +60,11 @@ export default function RFQDraftModal({
         deadline,
         vendorEmail || undefined
       );
-      setSubject(result.subject);
-      setBody(result.body);
+      setSubject(typeof result.subject === 'string' ? result.subject : String(result.subject || ''));
+      setBody(typeof result.body === 'string' ? result.body : JSON.stringify(result.body || '', null, 2));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate draft');
+      const errMsg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to generate draft';
+      setError(errMsg);
     } finally {
       setIsGenerating(false);
     }
