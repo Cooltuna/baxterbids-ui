@@ -953,6 +953,29 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                       </div>
                     </div>
 
+                    {/* Shipping Information */}
+                    {summary.shipping_info && (summary.shipping_info.city || summary.shipping_info.state || summary.shipping_info.zip) && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                          📦 Shipping Information
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">City</p>
+                            <p className="font-medium">{summary.shipping_info.city || 'N/A'}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">State</p>
+                            <p className="font-medium">{summary.shipping_info.state || 'N/A'}</p>
+                          </div>
+                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                            <p className="text-xs text-[var(--muted)]">ZIP Code</p>
+                            <p className="font-medium">{summary.shipping_info.zip || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Requirements */}
                     {summary.requirements.length > 0 && (
                       <div>

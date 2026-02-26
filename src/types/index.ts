@@ -92,6 +92,12 @@ export interface LineItem {
   specifications?: string;
 }
 
+export interface ShippingInfo {
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
 export interface BidSummary {
   bid_id: string;
   title: string;
@@ -108,6 +114,7 @@ export interface BidSummary {
     submission_due?: string;
     award_date?: string;
   };
+  shipping_info?: ShippingInfo;
   recommendations: string[];
   analyzed_at: string;
 }
