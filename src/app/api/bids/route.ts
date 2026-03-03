@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
     const transformedBids = bids
       .filter(b => b.status !== 'no bid') // Filter out "no bid" items
       .filter(b => {
+        // Always keep submitted bids regardless of close date
+        if (b.status === 'submitted') return true;
         // Keep bids with no close date
         if (!b.close_date) return true;
         // Keep bids that closed within the last 2 days

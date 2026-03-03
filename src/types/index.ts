@@ -52,7 +52,7 @@ export interface Bid {
   value?: string;
   category?: string;
   url: string;
-  sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'No Bid';
+  sheetStatus?: 'Open' | 'Interested' | 'Bidding' | 'Submitted' | 'Won' | 'Lost' | 'No Bid';
   isAnalyzed?: boolean;
   external_id?: string;
   source?: string;

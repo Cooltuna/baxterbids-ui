@@ -52,6 +52,32 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
     }
   };
 
+  const handleSubmitted = async (bid: Bid, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (updatingBid) return;
+    
+    const currentStatus = localStatuses[bid.id] || bid.sheetStatus;
+    const isSubmitted = currentStatus?.toLowerCase() === 'submitted';
+    const newStatus = isSubmitted ? 'Open' : 'Submitted';
+    
+    setLocalStatuses(prev => ({ ...prev, [bid.id]: newStatus.toLowerCase() }));
+    setUpdatingBid(bid.id);
+    
+    try {
+      await updateBidStatus(bid.id, newStatus);
+      onBidUpdated?.(bid.id, newStatus);
+    } catch (error) {
+      console.error('Failed to update bid:', error);
+      setLocalStatuses(prev => {
+        const next = { ...prev };
+        delete next[bid.id];
+        return next;
+      });
+    } finally {
+      setUpdatingBid(null);
+    }
+  };
+
   const handleInterested = async (bid: Bid, e: React.MouseEvent) => {
     e.stopPropagation();
     if (updatingBid) return;
@@ -332,6 +358,28 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         )}
+                      </button>
+                        );
+                      })()}
+                      {/* Submitted Toggle */}
+                      {(() => {
+                        const effectiveStatus = localStatuses[bid.id] || bid.sheetStatus;
+                        const isSubmitted = effectiveStatus?.toLowerCase() === 'submitted';
+                        const isWorking = updatingBid === bid.id;
+                        return (
+                      <button 
+                        onClick={(e) => handleSubmitted(bid, e)}
+                        disabled={isWorking}
+                        className={`p-2 rounded-lg transition-all disabled:opacity-70 ${
+                          isSubmitted
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'hover:bg-blue-500/10 text-[var(--muted)] hover:text-blue-400'
+                        }`}
+                        title={isSubmitted ? 'Marked as Submitted (click to undo)' : 'Mark as Submitted'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
                       </button>
                         );
                       })()}

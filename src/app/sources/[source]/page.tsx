@@ -17,6 +17,7 @@ interface SourceStats {
   postedToday: number;
   reviewed: number;
   interested: number;
+  submitted: number;
 }
 
 // Map URL slugs to display names
@@ -89,6 +90,7 @@ export default function SourceDashboard() {
     }).length,
     reviewed: activeBids.filter(b => b.sheetStatus && b.sheetStatus.toLowerCase() !== 'open').length,
     interested: activeBids.filter(b => b.sheetStatus?.toLowerCase() === 'interested').length,
+    submitted: [...activeBids, ...closedBids].filter(b => b.sheetStatus?.toLowerCase() === 'submitted').length,
   };
 
   // Fetch bids for this source
@@ -263,6 +265,7 @@ export default function SourceDashboard() {
     if (statusFilter === 'all') return activeBids;
     if (statusFilter === 'unreviewed') return activeBids.filter(b => !b.sheetStatus || b.sheetStatus.toLowerCase() === 'open');
     if (statusFilter === 'interested') return activeBids.filter(b => b.sheetStatus?.toLowerCase() === 'interested');
+    if (statusFilter === 'submitted') return [...activeBids, ...closedBids].filter(b => b.sheetStatus?.toLowerCase() === 'submitted');
     if (statusFilter === 'closing-soon') {
       return activeBids.filter(b => {
         const days = getDaysUntilClose(b.closeDate);
@@ -329,6 +332,7 @@ export default function SourceDashboard() {
               { id: 'all', label: 'All Active', count: activeBids.length },
               { id: 'unreviewed', label: 'Unreviewed', count: stats.total - stats.reviewed },
               { id: 'interested', label: 'Interested', count: stats.interested },
+              { id: 'submitted', label: 'Submitted', count: stats.submitted },
               { id: 'closing-soon', label: 'Closing Soon', count: stats.closingThreeDays + stats.closingToday },
               { id: 'closed', label: 'Closed', count: closedBids.length },
               // CACI-only Login tab
@@ -343,7 +347,9 @@ export default function SourceDashboard() {
                       ? 'bg-[var(--muted)] text-white'
                       : filter.id === 'login'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-[var(--accent)] text-white'
+                        : filter.id === 'submitted'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-[var(--accent)] text-white'
                     : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
                 }`}
               >

@@ -198,7 +198,7 @@ export async function draftRFQ(
  */
 export async function updateBidStatus(
   bidId: string,
-  status: 'No Bid' | 'Interested' | 'Bidding' | 'Won' | 'Lost' | 'Open'
+  status: 'No Bid' | 'Interested' | 'Bidding' | 'Submitted' | 'Won' | 'Lost' | 'Open'
 ): Promise<{ bid_id: string; status: string; updated_at: string }> {
   return fetchApi(`/bids/${encodeURIComponent(bidId)}/status`, {
     method: 'PATCH',
