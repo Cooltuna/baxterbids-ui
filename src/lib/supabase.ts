@@ -36,7 +36,7 @@ async function supabaseQuery<T>(
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
     },
-    next: { revalidate: 30 }, // Cache for 30 seconds
+    cache: 'no-store', // Always fetch fresh data
   });
   
   if (!response.ok) {
