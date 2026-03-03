@@ -17,8 +17,8 @@ interface BidTableProps {
 }
 
 export default function BidTable({ bids, searchQuery, isLoading = false, onSelectBid, onMarkInterested, onBidUpdated, rfqSummary = {}, showSource = false, analyzingBidId = null }: BidTableProps) {
-  const [sortBy, setSortBy] = useState<'closeDate' | 'title'>('closeDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<'closeDate' | 'title' | 'postedDate'>('postedDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [updatingBid, setUpdatingBid] = useState<string | null>(null);
   const [hiddenBids, setHiddenBids] = useState<Set<string>>(new Set());
   // Track local status overrides for optimistic updates
@@ -105,12 +105,25 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
         const dateB = new Date(b.closeDate).getTime();
         return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
       }
+      if (sortBy === 'postedDate') {
+        const dateA = a.postedDate ? new Date(a.postedDate).getTime() : 0;
+        const dateB = b.postedDate ? new Date(b.postedDate).getTime() : 0;
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      }
       return sortOrder === 'asc' 
         ? a.title.localeCompare(b.title)
         : b.title.localeCompare(a.title);
     });
 
-  const handleSort = (column: 'closeDate' | 'title') => {
+  const isNewBid = (postedDate?: string) => {
+    if (!postedDate) return false;
+    const posted = new Date(postedDate);
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    return posted >= threeDaysAgo;
+  };
+
+  const handleSort = (column: 'closeDate' | 'title' | 'postedDate') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -166,6 +179,19 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
               </th>
               <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                 Est. Value
+              </th>
+              <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
+                <button 
+                  onClick={() => handleSort('postedDate')}
+                  className="flex items-center gap-2 hover:text-[var(--foreground)] transition-colors"
+                >
+                  Posted
+                  {sortBy === 'postedDate' && (
+                    <svg className={`w-4 h-4 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  )}
+                </button>
               </th>
               <th className="text-left px-6 py-4 text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">
                 <button 
@@ -227,6 +253,22 @@ export default function BidTable({ bids, searchQuery, isLoading = false, onSelec
                   </td>
                   <td className="px-6 py-4 text-sm text-[var(--foreground)]">
                     {bid.value || 'TBD'}
+                  </td>
+                  <td className="px-6 py-4">
+                    {bid.postedDate ? (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-[var(--foreground)]">
+                          {new Date(bid.postedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </p>
+                        {isNewBid(bid.postedDate) && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--accent)]/20 text-[var(--accent)] uppercase tracking-wider">
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-[var(--muted)]">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div>

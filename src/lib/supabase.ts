@@ -99,6 +99,7 @@ export interface Bid {
   agency: string;
   status: string;
   close_date: string | null;
+  posted_date: string | null;
   estimated_value: string | null;
   category: string | null;
   url: string | null;
@@ -227,6 +228,7 @@ export function transformBid(bid: Bid) {
     title: bid.title,
     agency: bid.agency || 'MBTA',
     closeDate: bid.close_date || '',
+    postedDate: bid.posted_date || '',
     status: uiStatus,
     value: bid.estimated_value || '',
     category: bid.category || '',

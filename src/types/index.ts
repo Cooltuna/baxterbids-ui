@@ -47,6 +47,7 @@ export interface Bid {
   title: string;
   agency: string;
   closeDate: string;
+  postedDate?: string;
   status: 'active' | 'closing-soon' | 'closed';
   value?: string;
   category?: string;
