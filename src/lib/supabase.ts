@@ -130,7 +130,7 @@ export interface Source {
 export async function fetchBids(): Promise<Bid[]> {
   const bids = await supabaseQuery<Bid>('bids', {
     select: '*,sources(name)',
-    filter: 'or=(dismissed.is.null,dismissed.eq.false)',
+    filter: 'or=(dismissed.is.null,dismissed.eq.false,status.in.(submitted,interested,won,lost,awarded,bidding))',
     order: 'close_date.asc.nullslast',
   });
   
@@ -169,7 +169,7 @@ export async function fetchBidsBySource(sourceName: string): Promise<Bid[]> {
   
   const bids = await supabaseQuery<Bid>('bids', {
     select: '*,sources(name)',
-    filter: `source_id=eq.${sources[0].id}&or=(dismissed.is.null,dismissed.eq.false)`,
+    filter: `source_id=eq.${sources[0].id}&or=(dismissed.is.null,dismissed.eq.false,status.in.(submitted,interested,won,lost,awarded,bidding))`,
     order: 'close_date.asc.nullslast',
   });
   
