@@ -703,7 +703,18 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
                             <p className="text-xs text-[var(--muted)]">NSN</p>
-                            <p className="font-mono text-sm">{bid.enrichment.highergov.bid_info?.nsn || 'N/A'}</p>
+                            {bid.enrichment.highergov.bid_info?.nsn ? (
+                              <a
+                                href={`https://www.nsn-now.com/`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-sm text-[var(--accent)] hover:underline cursor-pointer"
+                              >
+                                {bid.enrichment.highergov.bid_info.nsn} ↗
+                              </a>
+                            ) : (
+                              <p className="font-mono text-sm">N/A</p>
+                            )}
                           </div>
                           <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
                             <p className="text-xs text-[var(--muted)]">Quantity</p>
@@ -1029,7 +1040,18 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
                             <p className="text-xs text-[var(--muted)]">NSN</p>
-                            <p className="font-mono text-sm">{bid.enrichment.highergov.bid_info?.nsn || 'N/A'}</p>
+                            {bid.enrichment.highergov.bid_info?.nsn ? (
+                              <a
+                                href={`https://www.nsn-now.com/`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-sm text-[var(--accent)] hover:underline cursor-pointer"
+                              >
+                                {bid.enrichment.highergov.bid_info.nsn} ↗
+                              </a>
+                            ) : (
+                              <p className="font-mono text-sm">N/A</p>
+                            )}
                           </div>
                           <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
                             <p className="text-xs text-[var(--muted)]">Quantity</p>
