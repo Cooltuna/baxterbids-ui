@@ -164,6 +164,13 @@ export interface QuoteItem {
   created_at: string;
 }
 
+export interface QuoteAttachment {
+  filename: string;
+  url: string | null;
+  size: number;
+  type: string;
+}
+
 export interface VendorQuote {
   id: string;
   rfq_id: string | null;
@@ -172,7 +179,8 @@ export interface VendorQuote {
   vendor_email: string;
   response_date: string;
   raw_email_id: string;
-  attachment_urls: string[];
+  attachment_urls: (string | QuoteAttachment)[];
+  raw_email_body?: string | null;
   shipping: number | null;
   terms: string | null;
   valid_until: string | null;

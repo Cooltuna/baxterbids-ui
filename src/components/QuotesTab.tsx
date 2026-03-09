@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { VendorQuote, QuoteItem, QuoteComparison } from '@/types';
+import { VendorQuote, QuoteItem, QuoteComparison, QuoteAttachment } from '@/types';
 import { fetchQuotesForBid, updateQuoteStatus } from '@/lib/supabase';
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
@@ -23,6 +23,7 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
   const [awardResult, setAwardResult] = useState<{ success: boolean; message: string; excelFile?: string } | null>(null);
   const [marginPct, setMarginPct] = useState(20);
   const [showAwardModal, setShowAwardModal] = useState<{ type: 'single' | 'best-mix'; quoteId?: string; vendorName?: string } | null>(null);
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
 
   // Load quotes
   useEffect(() => {
@@ -451,6 +452,69 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
               {quote.notes && (
                 <div className="mb-4 p-3 rounded-lg bg-[var(--background)] text-sm text-[var(--muted)]">
                   💬 {quote.notes}
+                </div>
+              )}
+
+              {/* Attachments */}
+              {quote.attachment_urls && quote.attachment_urls.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-xs font-semibold text-[var(--muted)] uppercase mb-2">📎 Attachments</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {quote.attachment_urls.map((att, idx) => {
+                      const isObj = typeof att === 'object' && att !== null;
+                      const filename = isObj ? (att as QuoteAttachment).filename : String(att);
+                      const url = isObj ? (att as QuoteAttachment).url : null;
+                      const size = isObj ? (att as QuoteAttachment).size : 0;
+                      const ext = filename.split('.').pop()?.toLowerCase() || '';
+                      const icon = ext === 'pdf' ? '📄' : ext === 'xlsx' || ext === 'xls' ? '📊' : ext === 'csv' ? '📋' : '📁';
+                      
+                      return (
+                        <a
+                          key={idx}
+                          href={url || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm transition-colors ${
+                            url 
+                              ? 'hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 cursor-pointer' 
+                              : 'opacity-50 cursor-not-allowed'
+                          }`}
+                          onClick={(e) => !url && e.preventDefault()}
+                        >
+                          <span>{icon}</span>
+                          <span className="text-[var(--foreground)]">{filename}</span>
+                          {size > 0 && (
+                            <span className="text-xs text-[var(--muted)]">
+                              ({size >= 1024 * 1024 
+                                ? `${(size / (1024 * 1024)).toFixed(1)}MB` 
+                                : `${Math.round(size / 1024)}KB`})
+                            </span>
+                          )}
+                          {url && <span className="text-[var(--accent)]">↓</span>}
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Email Preview */}
+              {quote.raw_email_body && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setExpandedEmail(expandedEmail === quote.id ? null : quote.id)}
+                    className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)] uppercase hover:text-[var(--foreground)] transition-colors mb-2"
+                  >
+                    <span className={`transition-transform ${expandedEmail === quote.id ? 'rotate-90' : ''}`}>▶</span>
+                    ✉️ Email Preview
+                  </button>
+                  {expandedEmail === quote.id && (
+                    <div className="p-4 rounded-lg bg-[var(--background)] border border-[var(--border)] max-h-80 overflow-y-auto">
+                      <pre className="text-sm text-[var(--foreground)] whitespace-pre-wrap font-sans leading-relaxed">
+                        {quote.raw_email_body}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
 
