@@ -298,6 +298,11 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
             setSelectedItems(new Set(cachedAnalysis.line_items.map((_: LineItem, i: number) => i)));
             setIsFromCache(true);
             
+            // If we have line items, jump straight to BOM tab
+            if (cachedAnalysis.line_items?.length > 0) {
+              setActiveTab('bom');
+            }
+            
             // If we have analysis, also try to load cached vendors
             const cachedVendors = await getCachedVendors(bid.id);
             if (cachedVendors) {
@@ -313,6 +318,7 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
       };
       
       loadCachedData();
+      loadRFQs();
     }
   }, [bid?.id]);
 
