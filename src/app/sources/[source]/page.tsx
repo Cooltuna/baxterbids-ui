@@ -256,10 +256,16 @@ export default function SourceDashboard() {
     return date.toLocaleTimeString();
   };
 
+  // Bids with RFQs sent (across active + closed)
+  const openRfqBids = [...activeBids, ...closedBids].filter(b => rfqSummary[b.id]?.sent > 0);
+
   // Filter bids by status
   const filteredBids = (() => {
     // Closed tab shows expired bids
     if (statusFilter === 'closed') return closedBids;
+    
+    // Open RFQs tab shows all bids with RFQs sent
+    if (statusFilter === 'open-rfqs') return openRfqBids;
     
     // All other tabs filter from active bids only
     if (statusFilter === 'all') return activeBids;
@@ -335,6 +341,7 @@ export default function SourceDashboard() {
               { id: 'submitted', label: 'Submitted', count: stats.submitted },
               { id: 'closing-soon', label: 'Closing Soon', count: stats.closingThreeDays + stats.closingToday },
               { id: 'closed', label: 'Closed', count: closedBids.length },
+              { id: 'open-rfqs', label: 'Open RFQs', count: openRfqBids.length },
               // CACI-only Login tab
               ...(isCACI ? [{ id: 'login', label: '🔑 Login', count: null }] : []),
             ].map(filter => (
@@ -349,7 +356,9 @@ export default function SourceDashboard() {
                         ? 'bg-blue-600 text-white'
                         : filter.id === 'submitted'
                           ? 'bg-blue-500 text-white'
-                          : 'bg-[var(--accent)] text-white'
+                          : filter.id === 'open-rfqs'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-[var(--accent)] text-white'
                     : 'bg-[var(--card)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]'
                 }`}
               >
