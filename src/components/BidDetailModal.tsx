@@ -74,6 +74,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
   const [sentRFQs, setSentRFQs] = useState<RFQRecord[]>([]);
   const [isLoadingRFQs, setIsLoadingRFQs] = useState(false);
   const [previewRFQ, setPreviewRFQ] = useState<RFQRecord | null>(null);
+  const [richQuotes, setRichQuotes] = useState<any[]>([]);
   const [showBidSummary, setShowBidSummary] = useState(false);
   const [documentUrls, setDocumentUrls] = useState<Record<string, string>>({});
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
@@ -149,12 +150,90 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
     try {
       const data = await getBidRFQs(bid.id);
       setSentRFQs(data.rfqs || []);
+      // Also fetch rich quote data from Supabase (has email body, attachments, line items)
+      try {
+        const apiBase = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+          ? 'https://api.logisticollc.com' : 'http://localhost:8000';
+        const quotesRes = await fetch(`${apiBase}/bids/${encodeURIComponent(bid.id)}/quotes`);
+        const quotesData = await quotesRes.json();
+        if (quotesData.quotes) {
+          setRichQuotes(quotesData.quotes);
+        }
+      } catch {
+        // Rich quotes not available — no problem, basic view still works
+      }
     } catch (err) {
       console.log('No RFQs found for bid');
       setSentRFQs([]);
     } finally {
       setIsLoadingRFQs(false);
     }
+  };
+
+  // Helper: find rich quote data for a given RFQ (matches by vendor name/email)
+  const getRichQuote = (rfq: RFQRecord) => {
+    if (!richQuotes.length) return null;
+    return richQuotes.find((q: any) => 
+      q.vendor_email?.toLowerCase() === rfq.vendor_email?.toLowerCase() ||
+      q.vendor_name?.toLowerCase() === rfq.vendor_name?.toLowerCase()
+    ) || null;
+  };
+
+  // Build rich download content
+  const buildDownloadContent = (rfq: RFQRecord) => {
+    const rich = getRichQuote(rfq);
+    const items = JSON.parse(rfq.items_json || '[]');
+    
+    let content = `RFQ Response - ${rfq.vendor_name}
+=====================================
+Bid ID: ${rfq.bid_id}
+Vendor: ${rfq.vendor_name}
+Email: ${rfq.vendor_email || 'N/A'}
+Status: ${rfq.status}
+
+Sent: ${new Date(rfq.sent_at).toLocaleString()}
+Response Received: ${rfq.response_received_at ? new Date(rfq.response_received_at).toLocaleString() : 'N/A'}
+
+QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
+`;
+
+    if (items.length > 0) {
+      content += `\nItems Requested:\n${items.map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}\n`;
+    }
+
+    // Add rich data if available
+    if (rich) {
+      if (rich.raw_parsed_data?.line_items?.length > 0) {
+        content += `\n${'='.repeat(40)}\nQUOTED LINE ITEMS\n${'='.repeat(40)}\n`;
+        for (const item of rich.raw_parsed_data.line_items) {
+          content += `\n${item.part_number || ''} - ${item.description || ''}`;
+          content += `\n  Qty: ${item.qty || ''} ${item.uom || 'EA'}`;
+          content += `\n  Unit Price: $${item.unit_price?.toLocaleString() || 'N/A'}`;
+          if (item.lead_time) content += `\n  Lead Time: ${item.lead_time}`;
+          if (item.manufacturer) content += `\n  Manufacturer: ${item.manufacturer}`;
+          if (item.condition) content += `\n  Condition: ${item.condition}`;
+          if (item.notes) content += `\n  Notes: ${item.notes}`;
+          content += '\n';
+        }
+      }
+
+      if (rich.raw_parsed_data?.terms) {
+        content += `\nTerms: ${rich.raw_parsed_data.terms}\n`;
+      }
+      if (rich.raw_parsed_data?.valid_until) {
+        content += `Valid Until: ${rich.raw_parsed_data.valid_until}\n`;
+      }
+      if (rich.notes) {
+        content += `\nVendor Notes:\n${rich.notes}\n`;
+      }
+      if (rich.raw_email_body) {
+        content += `\n${'='.repeat(40)}\nORIGINAL EMAIL\n${'='.repeat(40)}\n\n${rich.raw_email_body}\n`;
+      }
+    } else {
+      content += `\nQuote Details:\n${rfq.notes || 'No details available'}\n`;
+    }
+
+    return content;
   };
 
   // Fetch pricing intelligence for HigherGov bids
@@ -1808,24 +1887,7 @@ export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAn
                                 </button>
                                 <button
                                   onClick={() => {
-                                    const content = `RFQ Response - ${rfq.vendor_name}
-=====================================
-Bid ID: ${rfq.bid_id}
-Vendor: ${rfq.vendor_name}
-Email: ${rfq.vendor_email || 'N/A'}
-Status: ${rfq.status}
-
-Sent: ${new Date(rfq.sent_at).toLocaleString()}
-Response Received: ${rfq.response_received_at ? new Date(rfq.response_received_at).toLocaleString() : 'N/A'}
-
-QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
-
-Items Requested:
-${JSON.parse(rfq.items_json || '[]').map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}
-
-Quote Details:
-${rfq.notes || 'No details available'}
-`;
+                                    const content = buildDownloadContent(rfq);
                                     const blob = new Blob([content], { type: 'text/plain' });
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement('a');
@@ -2416,29 +2478,108 @@ ${r.vendor_name}
                   </div>
                 </div>
               )}
+
+              {/* Rich Quote Data (from rfq_quotes in Supabase) */}
+              {(() => {
+                const rich = getRichQuote(previewRFQ);
+                if (!rich) return null;
+                return (
+                  <>
+                    {/* Parsed Line Items */}
+                    {rich.raw_parsed_data?.line_items?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">📊 Quoted Line Items</p>
+                        <div className="rounded-lg border border-[var(--border)] overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-[var(--background)] text-xs text-[var(--muted)]">
+                                <th className="text-left py-2 px-3">Part / Description</th>
+                                <th className="text-right py-2 px-3">Qty</th>
+                                <th className="text-right py-2 px-3">Unit Price</th>
+                                <th className="text-left py-2 px-3">Lead Time</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rich.raw_parsed_data.line_items.map((item: any, i: number) => (
+                                <tr key={i} className="border-t border-[var(--border)]/30">
+                                  <td className="py-2 px-3">
+                                    <div className="font-medium text-[var(--foreground)]">{item.description}</div>
+                                    {item.part_number && <div className="text-xs text-[var(--muted)]">{item.part_number}</div>}
+                                  </td>
+                                  <td className="text-right py-2 px-3 text-[var(--muted)]">{item.qty} {item.uom || 'EA'}</td>
+                                  <td className="text-right py-2 px-3 font-semibold text-[var(--success)]">
+                                    ${item.unit_price?.toLocaleString() || 'N/A'}
+                                  </td>
+                                  <td className="py-2 px-3 text-[var(--muted)]">{item.lead_time || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Terms & Validity */}
+                    {(rich.raw_parsed_data?.terms || rich.raw_parsed_data?.valid_until) && (
+                      <div className="flex gap-4">
+                        {rich.raw_parsed_data.terms && (
+                          <div>
+                            <p className="text-xs text-[var(--muted)] uppercase tracking-wider">Terms</p>
+                            <p className="text-sm font-medium text-[var(--foreground)]">{rich.raw_parsed_data.terms}</p>
+                          </div>
+                        )}
+                        {rich.raw_parsed_data.valid_until && (
+                          <div>
+                            <p className="text-xs text-[var(--muted)] uppercase tracking-wider">Valid Until</p>
+                            <p className="text-sm font-medium text-[var(--foreground)]">{rich.raw_parsed_data.valid_until}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Attachments */}
+                    {rich.attachment_urls?.length > 0 && rich.attachment_urls.some((a: any) => typeof a === 'object' && a?.url) && (
+                      <div>
+                        <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">📎 Attachments</p>
+                        <div className="flex flex-wrap gap-2">
+                          {rich.attachment_urls.filter((a: any) => typeof a === 'object' && a?.url).map((att: any, i: number) => (
+                            <a
+                              key={i}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors"
+                            >
+                              {att.type === 'pdf' ? '📄' : att.type === 'xlsx' ? '📊' : '📁'}
+                              <span>{att.filename}</span>
+                              <span className="text-[var(--accent)]">↓</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Email Body */}
+                    {rich.raw_email_body && (
+                      <div>
+                        <p className="text-xs text-[var(--muted)] uppercase tracking-wider mb-2">✉️ Original Email</p>
+                        <div className="p-4 rounded-lg bg-[var(--background)] border border-[var(--border)] max-h-60 overflow-y-auto">
+                          <pre className="text-sm text-[var(--foreground)] whitespace-pre-wrap font-sans leading-relaxed">
+                            {rich.raw_email_body}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Footer */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--border)]">
               <button
                 onClick={() => {
-                  const content = `RFQ Response - ${previewRFQ.vendor_name}
-=====================================
-Bid ID: ${previewRFQ.bid_id}
-Vendor: ${previewRFQ.vendor_name}
-Email: ${previewRFQ.vendor_email || 'N/A'}
-
-Sent: ${new Date(previewRFQ.sent_at).toLocaleString()}
-Response Received: ${previewRFQ.response_received_at ? new Date(previewRFQ.response_received_at).toLocaleString() : 'N/A'}
-
-QUOTED TOTAL: $${previewRFQ.quoted_total?.toLocaleString() || 'N/A'}
-
-Items Requested:
-${JSON.parse(previewRFQ.items_json || '[]').map((item: string, i: number) => `${i + 1}. ${item}`).join('\n')}
-
-Quote Details:
-${previewRFQ.notes || 'No details available'}
-`;
+                  const content = buildDownloadContent(previewRFQ);
                   const blob = new Blob([content], { type: 'text/plain' });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
