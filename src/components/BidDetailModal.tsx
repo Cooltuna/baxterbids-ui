@@ -925,7 +925,10 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                       </button>
                     </div>
                   </div>
-                ) : !summary ? (
+                )}
+
+                {/* AI Analysis prompt - show when no summary and no description */}
+                {!summary && !bid.description && !bid.originalDescription && (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--card)] flex items-center justify-center">
                       <svg className="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1016,7 +1019,10 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                       </div>
                     )}
                   </div>
-                ) : (
+                )}
+
+                {/* AI Summary display - show when analysis has been run */}
+                {summary && (
                   <div className="space-y-6">
                     {/* Scope */}
                     <div>
