@@ -31,8 +31,9 @@ export default function RFQDraftModal({
 }: RFQDraftModalProps) {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  // Default to test email if no vendor contact
-  const [vendorEmail, setVendorEmail] = useState(vendor.contact || '');
+  // All RFQs route to internal review queue first
+  const REVIEW_EMAIL = 'sales@logisticollc.com';
+  const [vendorEmail, setVendorEmail] = useState(REVIEW_EMAIL);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
@@ -234,17 +235,18 @@ export default function RFQDraftModal({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
-                    Send To (Email) *
+                    Send To (Internal Review)
                   </label>
                   <input
                     type="email"
                     value={vendorEmail}
                     onChange={(e) => setVendorEmail(e.target.value)}
-                    placeholder="vendor@example.com"
+                    placeholder="sales@logisticollc.com"
                     className="w-full px-3 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--accent)] font-medium"
                   />
                   <p className="text-xs text-[var(--muted)] mt-1">
-                    Email will be sent from logisticorfq@gmail.com
+                    From: logisticorfq@gmail.com → Routed to internal review before vendor delivery
+                    {vendor.contact && <span className="ml-1">(Intended vendor: {vendor.contact})</span>}
                   </p>
                 </div>
                 <div>
