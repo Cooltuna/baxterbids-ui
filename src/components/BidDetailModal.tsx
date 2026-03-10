@@ -52,7 +52,7 @@ function getFileIcon(fileType: string) {
   );
 }
 
-type Tab = 'summary' | 'docs' | 'bom' | 'vendors' | 'rfq' | 'quotes';
+type Tab = 'summary' | 'intel' | 'docs' | 'bom' | 'vendors' | 'rfq' | 'quotes';
 
 export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete, onRefresh }: BidDetailModalProps) {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
@@ -259,6 +259,7 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
         const updatedBid = await fetchBidById(bid.id);
         if (updatedBid && onRefresh) {
           onRefresh(updatedBid as Bid);
+          setActiveTab('intel');  // Switch to Intel tab to show results
         } else {
           // Fallback to reload if no callback
           window.location.reload();
@@ -646,6 +647,22 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
               📋 Summary
             </button>
             
+            {/* Intel tab - show for HigherGov bids */}
+            {bid.source?.toLowerCase().includes('highergov') && (
+              <button
+                onClick={() => setActiveTab('intel')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                  activeTab === 'intel'
+                    ? 'bg-[var(--success)] text-white'
+                    : bid.enrichment?.highergov
+                      ? 'text-[var(--success)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+                      : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+                }`}
+              >
+                📊 Intel {bid.enrichment?.highergov ? '✓' : ''}
+              </button>
+            )}
+            
             {/* Documents tab - only show if bid has documents */}
             {bid.documents && bid.documents.length > 0 && (
               <button
@@ -721,184 +738,49 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
             {/* Summary Tab */}
             {activeTab === 'summary' && (
               <div>
-                {/* Fetch Intel button - ALWAYS shows at top for HigherGov bids without enrichment */}
-                {!bid.enrichment?.highergov && bid.source?.toLowerCase().includes('highergov') && (
-                  <div className="mb-4 p-4 rounded-lg bg-[var(--card)] border border-dashed border-[var(--border)]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-[var(--foreground)]">Pricing Intelligence Available</p>
-                        <p className="text-sm text-[var(--muted)]">Fetch purchase history and approved suppliers from HigherGov</p>
-                        {enrichError && (
-                          <p className="text-sm text-red-500 mt-1">{enrichError}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={fetchPricingIntel}
-                        disabled={isEnriching || apiAvailable === false}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--success)] text-white rounded-lg font-medium hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isEnriching ? (
-                          <>
-                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Fetching...
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            Fetch Intel
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bid Summary - always accessible (clickable toggle if enrichment exists) */}
+                {/* Bid Summary - always visible, never overwritten */}
                 {(bid.description || bid.originalDescription) && (
                   <div className="space-y-4">
-                    <button
-                      onClick={() => setShowBidSummary(!showBidSummary)}
-                      className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors cursor-pointer w-full text-left"
-                    >
-                      <svg className={`w-4 h-4 transition-transform ${showBidSummary || !bid.enrichment?.highergov ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="flex items-center gap-2 text-sm text-[var(--accent)]">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Bid Summary
-                    </button>
-                    {(showBidSummary || !bid.enrichment?.highergov) && (
-                      <div className="prose prose-sm max-w-none">
-                        <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm text-[var(--foreground)]">
-                          {bid.originalDescription || bid.description}
-                        </div>
+                    </div>
+                    <div className="prose prose-sm max-w-none">
+                      <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm text-[var(--foreground)]">
+                        {bid.originalDescription || bid.description}
                       </div>
-                    )}
+                    </div>
                     
-                    {/* Enrichment Data - Purchase History & Suppliers */}
+                    {/* Enrichment hint - point user to Intel tab */}
                     {bid.enrichment?.highergov && (
-                      <div className="space-y-6 mt-6">
-                        {/* Pricing Intelligence Header */}
-                        <div className="flex items-center gap-2 text-sm text-[var(--success)]">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                          Pricing Intelligence (HigherGov)
-                        </div>
-                        
-                        {/* Bid Info Summary */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">NSN</p>
-                            {bid.enrichment.highergov.bid_info?.nsn ? (
-                              <a
-                                href={`https://www.nsn-now.com/`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono text-sm text-[var(--accent)] hover:underline cursor-pointer"
-                              >
-                                {bid.enrichment.highergov.bid_info.nsn} ↗
-                              </a>
-                            ) : (
-                              <p className="font-mono text-sm">N/A</p>
-                            )}
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">Quantity</p>
-                            <p className="font-medium">{bid.enrichment.highergov.bid_info?.quantity || 0} {bid.enrichment.highergov.bid_info?.unit || 'EA'}</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">Last Price</p>
-                            <p className="font-medium text-[var(--success)]">${bid.enrichment.highergov.bid_info?.last_price?.toLocaleString() || 'N/A'}</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/30">
-                            <p className="text-xs text-[var(--accent)]">Est. Value</p>
-                            <p className="font-bold text-[var(--accent)]">${bid.enrichment.highergov.bid_info?.est_value?.toLocaleString() || 'N/A'}</p>
-                          </div>
-                        </div>
-
-                        {/* Approved Suppliers */}
-                        {bid.enrichment.highergov.approved_suppliers?.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
-                              Approved Manufacturers ({bid.enrichment.highergov.approved_suppliers.length})
-                            </h4>
-                            <div className="space-y-2">
-                              {bid.enrichment.highergov.approved_suppliers.map((supplier, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                                  <div>
-                                    <p className="font-medium text-[var(--foreground)]">{supplier.name}</p>
-                                    <p className="text-xs text-[var(--muted)]">Part #: {supplier.part_number}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className="px-2 py-1 rounded bg-[var(--accent)]/10 text-xs font-mono text-[var(--accent)]">
-                                      CAGE: {supplier.cage}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Purchase History */}
-                        {bid.enrichment.highergov.purchase_history?.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
-                              Purchase History ({bid.enrichment.highergov.purchase_history.length} records)
-                            </h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-[var(--border)] text-left">
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Part #</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Price</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Set-Aside</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {bid.enrichment.highergov.purchase_history.slice(0, 10).map((record, idx) => (
-                                    <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
-                                      <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
-                                      <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
-                                      <td className="py-2 px-3 font-mono text-xs">{record.part_number || '-'}</td>
-                                      <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
-                                        ${record.unit_price?.toLocaleString() || '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
-                                      <td className="py-2 px-3">
-                                        {record.set_aside && record.set_aside !== 'None' ? (
-                                          <span className="px-1.5 py-0.5 rounded text-xs bg-[var(--accent)]/10 text-[var(--accent)]">
-                                            {record.set_aside}
-                                          </span>
-                                        ) : '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              {bid.enrichment.highergov.purchase_history.length > 10 && (
-                                <p className="text-xs text-[var(--muted)] mt-2 text-center">
-                                  Showing 10 of {bid.enrichment.highergov.purchase_history.length} records
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                      <div className="mt-4 p-3 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/30">
+                        <p className="text-sm text-[var(--success)]">
+                          ✓ Intel data available — check the <button onClick={() => setActiveTab('intel')} className="underline font-medium">📊 Intel tab</button> for pricing intelligence, suppliers, and purchase history.
+                        </p>
                       </div>
                     )}
-                    
+
+                    {/* Fetch Intel button - show for HigherGov bids without enrichment */}
+                    {!bid.enrichment?.highergov && bid.source?.toLowerCase().includes('highergov') && (
+                      <div className="mt-4 p-4 rounded-lg bg-[var(--card)] border border-dashed border-[var(--border)]">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-[var(--foreground)]">Pricing Intelligence Available</p>
+                            <p className="text-sm text-[var(--muted)]">Fetch purchase history and approved suppliers from HigherGov</p>
+                          </div>
+                          <button
+                            onClick={fetchPricingIntel}
+                            disabled={isEnriching || apiAvailable === false}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--success)] text-white rounded-lg font-medium hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isEnriching ? 'Fetching...' : '📊 Fetch Intel'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Extract BOM button */}
                     <div className="pt-2">
                       <button
@@ -1120,123 +1002,12 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                       </div>
                     )}
 
-                    {/* DEBUG: Show enrichment status */}
-                    <div className="p-2 bg-yellow-100 text-yellow-800 text-xs rounded mb-2">
-                      DEBUG v2: enrichment={bid.enrichment ? 'YES' : 'NO'}
-                    </div>
-                    
-                    {/* Pricing Intelligence from HigherGov */}
+                    {/* Intel tab pointer (when enrichment exists in AI summary view) */}
                     {bid.enrichment?.highergov && (
-                      <div className="space-y-4 pt-4 border-t border-[var(--border)]">
-                        <div className="flex items-center gap-2 text-sm text-[var(--success)]">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
-                          📊 Pricing Intelligence
-                        </div>
-                        
-                        {/* Bid Info Summary */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">NSN</p>
-                            {bid.enrichment.highergov.bid_info?.nsn ? (
-                              <a
-                                href={`https://www.nsn-now.com/`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="font-mono text-sm text-[var(--accent)] hover:underline cursor-pointer"
-                              >
-                                {bid.enrichment.highergov.bid_info.nsn} ↗
-                              </a>
-                            ) : (
-                              <p className="font-mono text-sm">N/A</p>
-                            )}
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">Quantity</p>
-                            <p className="font-medium">{bid.enrichment.highergov.bid_info?.quantity || 0} {bid.enrichment.highergov.bid_info?.unit || 'EA'}</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                            <p className="text-xs text-[var(--muted)]">Last Price</p>
-                            <p className="font-medium text-[var(--success)]">${bid.enrichment.highergov.bid_info?.last_price?.toLocaleString() || 'N/A'}</p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/30">
-                            <p className="text-xs text-[var(--accent)]">Est. Value</p>
-                            <p className="font-bold text-[var(--accent)]">${bid.enrichment.highergov.bid_info?.est_value?.toLocaleString() || 'N/A'}</p>
-                          </div>
-                        </div>
-
-                        {/* Approved Suppliers */}
-                        {bid.enrichment.highergov.approved_suppliers?.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
-                              Approved Manufacturers ({bid.enrichment.highergov.approved_suppliers.length})
-                            </h4>
-                            <div className="space-y-2">
-                              {bid.enrichment.highergov.approved_suppliers.map((supplier, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
-                                  <div>
-                                    <p className="font-medium text-[var(--foreground)]">{supplier.name}</p>
-                                    <p className="text-xs text-[var(--muted)]">Part #: {supplier.part_number}</p>
-                                  </div>
-                                  <span className="px-2 py-1 rounded bg-[var(--accent)]/10 text-xs font-mono text-[var(--accent)]">
-                                    CAGE: {supplier.cage}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Purchase History */}
-                        {bid.enrichment.highergov.purchase_history?.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
-                              Purchase History ({bid.enrichment.highergov.purchase_history.length} records)
-                            </h4>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-[var(--border)] text-left">
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Part #</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Price</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Set-Aside</th>
-                                    <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {bid.enrichment.highergov.purchase_history.slice(0, 10).map((record, idx) => (
-                                    <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
-                                      <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
-                                      <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
-                                      <td className="py-2 px-3 font-mono text-xs">{record.part_number || '-'}</td>
-                                      <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
-                                        ${record.unit_price?.toLocaleString() || '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
-                                      <td className="py-2 px-3">
-                                        {record.set_aside && record.set_aside !== 'None' ? (
-                                          <span className="px-1.5 py-0.5 rounded text-xs bg-[var(--accent)]/10 text-[var(--accent)]">
-                                            {record.set_aside}
-                                          </span>
-                                        ) : '-'}
-                                      </td>
-                                      <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              {bid.enrichment.highergov.purchase_history.length > 10 && (
-                                <p className="text-xs text-[var(--muted)] mt-2 text-center">
-                                  Showing 10 of {bid.enrichment.highergov.purchase_history.length} records
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                      <div className="p-3 rounded-lg bg-[var(--success)]/10 border border-[var(--success)]/30">
+                        <p className="text-sm text-[var(--success)]">
+                          ✓ Intel data available — check the <button onClick={() => setActiveTab('intel')} className="underline font-medium">📊 Intel tab</button> for pricing intelligence, suppliers, and purchase history.
+                        </p>
                       </div>
                     )}
 
@@ -1261,6 +1032,127 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                         </button>
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Intel Tab */}
+            {activeTab === 'intel' && (
+              <div>
+                {bid.enrichment?.highergov ? (
+                  <div className="space-y-6">
+                    {/* Bid Info Summary */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                        <p className="text-xs text-[var(--muted)]">NSN</p>
+                        {bid.enrichment.highergov.bid_info?.nsn ? (
+                          <a
+                            href={`https://www.nsn-now.com/`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-sm text-[var(--accent)] hover:underline cursor-pointer"
+                          >
+                            {bid.enrichment.highergov.bid_info.nsn} ↗
+                          </a>
+                        ) : (
+                          <p className="font-mono text-sm">N/A</p>
+                        )}
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                        <p className="text-xs text-[var(--muted)]">Quantity</p>
+                        <p className="font-medium">{bid.enrichment.highergov.bid_info?.quantity || 0} {bid.enrichment.highergov.bid_info?.unit || 'EA'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                        <p className="text-xs text-[var(--muted)]">Last Price</p>
+                        <p className="font-medium text-[var(--success)]">${bid.enrichment.highergov.bid_info?.last_price?.toLocaleString() || 'N/A'}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/30">
+                        <p className="text-xs text-[var(--accent)]">Est. Value</p>
+                        <p className="font-bold text-[var(--accent)]">${bid.enrichment.highergov.bid_info?.est_value?.toLocaleString() || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Approved Suppliers */}
+                    {bid.enrichment.highergov.approved_suppliers?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                          Approved Manufacturers ({bid.enrichment.highergov.approved_suppliers.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {bid.enrichment.highergov.approved_suppliers.map((supplier: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+                              <div>
+                                <p className="font-medium text-[var(--foreground)]">{supplier.name}</p>
+                                <p className="text-xs text-[var(--muted)]">Part #: {supplier.part_number}</p>
+                              </div>
+                              <span className="px-2 py-1 rounded bg-[var(--accent)]/10 text-xs font-mono text-[var(--accent)]">
+                                CAGE: {supplier.cage}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Purchase History */}
+                    {bid.enrichment.highergov.purchase_history?.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                          Purchase History ({bid.enrichment.highergov.purchase_history.length} records)
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-[var(--border)] text-left">
+                                <th className="py-2 px-3 font-medium text-[var(--muted)]">Date</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)]">Awardee</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)]">Part #</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Price</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Qty</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)]">Set-Aside</th>
+                                <th className="py-2 px-3 font-medium text-[var(--muted)]">Bidders</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {bid.enrichment.highergov.purchase_history.map((record: any, idx: number) => (
+                                <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
+                                  <td className="py-2 px-3 text-[var(--muted)]">{record.date || '-'}</td>
+                                  <td className="py-2 px-3 font-medium">{record.awardee || '-'}</td>
+                                  <td className="py-2 px-3 font-mono text-xs">{record.part_number || '-'}</td>
+                                  <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
+                                    ${record.unit_price?.toLocaleString() || '-'}
+                                  </td>
+                                  <td className="py-2 px-3 text-right">{record.quantity || '-'}</td>
+                                  <td className="py-2 px-3">
+                                    {record.set_aside && record.set_aside !== 'None' ? (
+                                      <span className="px-1.5 py-0.5 rounded text-xs bg-[var(--accent)]/10 text-[var(--accent)]">
+                                        {record.set_aside}
+                                      </span>
+                                    ) : '-'}
+                                  </td>
+                                  <td className="py-2 px-3 text-[var(--muted)]">{record.bidders || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-[var(--muted)] mb-4">No intel data yet. Fetch pricing intelligence from HigherGov.</p>
+                    <button
+                      onClick={() => { fetchPricingIntel(); }}
+                      disabled={isEnriching || apiAvailable === false}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--success)] text-white rounded-lg font-medium hover:bg-[var(--success)]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isEnriching ? 'Fetching...' : '📊 Fetch Intel'}
+                    </button>
+                    {enrichError && (
+                      <p className="text-sm text-red-500 mt-2">{enrichError}</p>
+                    )}
                   </div>
                 )}
               </div>
