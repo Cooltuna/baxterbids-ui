@@ -57,6 +57,7 @@ export interface Bid {
   external_id?: string;
   source?: string;
   description?: string;
+  originalDescription?: string | null;
   documents?: BidDocument[];
   enrichment?: BidEnrichment | null;
 }

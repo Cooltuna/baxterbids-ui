@@ -207,8 +207,9 @@ export function transformBid(bid: Bid) {
     uiStatus = 'closing-soon';
   }
   
-  // Parse raw_data for enrichment
+  // Parse raw_data for enrichment and original description
   let enrichment: BidEnrichment | null = null;
+  let originalDescription: string | null = null;
   if (bid.raw_data) {
     try {
       const rawData = typeof bid.raw_data === 'string' 
@@ -216,6 +217,9 @@ export function transformBid(bid: Bid) {
         : bid.raw_data;
       if (rawData?.enrichment) {
         enrichment = rawData.enrichment;
+      }
+      if (rawData?.original_description) {
+        originalDescription = rawData.original_description;
       }
     } catch (e) {
       console.warn('Failed to parse raw_data:', e);
@@ -236,6 +240,7 @@ export function transformBid(bid: Bid) {
     sheetStatus: bid.status,
     source: bid.sources?.name || 'Unknown',
     description: bid.description || '',
+    originalDescription: originalDescription || null,
     documents: bid.documents || [],
     enrichment,
   };

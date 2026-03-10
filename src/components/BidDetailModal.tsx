@@ -758,20 +758,28 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                   </div>
                 )}
 
-                {/* Show description if available */}
-                {!summary && bid.description ? (
+                {/* Bid Summary - always accessible (clickable toggle if enrichment exists) */}
+                {(bid.description || bid.originalDescription) && (
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-[var(--accent)]">
+                    <button
+                      onClick={() => setShowBidSummary(!showBidSummary)}
+                      className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors cursor-pointer w-full text-left"
+                    >
+                      <svg className={`w-4 h-4 transition-transform ${showBidSummary || !bid.enrichment?.highergov ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Bid Summary
-                    </div>
-                    <div className="prose prose-sm max-w-none">
-                      <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm text-[var(--foreground)]">
-                        {bid.description}
+                    </button>
+                    {(showBidSummary || !bid.enrichment?.highergov) && (
+                      <div className="prose prose-sm max-w-none">
+                        <div className="bg-[var(--card)] rounded-lg p-4 border border-[var(--border)] whitespace-pre-wrap text-sm text-[var(--foreground)]">
+                          {bid.originalDescription || bid.description}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     
                     {/* Enrichment Data - Purchase History & Suppliers */}
                     {bid.enrichment?.highergov && (
