@@ -24,6 +24,7 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
   const [marginPct, setMarginPct] = useState(20);
   const [showAwardModal, setShowAwardModal] = useState<{ type: 'single' | 'best-mix'; quoteId?: string; vendorName?: string } | null>(null);
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string; filename: string; type: string } | null>(null);
 
   // Load quotes
   useEffect(() => {
@@ -473,30 +474,48 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                       const ext = filename.split('.').pop()?.toLowerCase() || '';
                       const icon = ext === 'pdf' ? '📄' : ext === 'xlsx' || ext === 'xls' ? '📊' : ext === 'csv' ? '📋' : '📁';
                       
+                      const canPreview = ext === 'pdf' && !!url;
+                      
                       return (
-                        <a
-                          key={idx}
-                          href={url || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm transition-colors ${
-                            url 
-                              ? 'hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 cursor-pointer' 
-                              : 'opacity-50 cursor-not-allowed'
-                          }`}
-                          onClick={(e) => !url && e.preventDefault()}
-                        >
-                          <span>{icon}</span>
-                          <span className="text-[var(--foreground)]">{filename}</span>
-                          {size > 0 && (
-                            <span className="text-xs text-[var(--muted)]">
-                              ({size >= 1024 * 1024 
-                                ? `${(size / (1024 * 1024)).toFixed(1)}MB` 
-                                : `${Math.round(size / 1024)}KB`})
-                            </span>
+                        <div key={idx} className="inline-flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (canPreview) {
+                                setPreviewFile({ url: url!, filename, type: ext });
+                              } else if (url) {
+                                window.open(url, '_blank');
+                              }
+                            }}
+                            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] text-sm transition-colors ${
+                              url 
+                                ? 'hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 cursor-pointer' 
+                                : 'opacity-50 cursor-not-allowed'
+                            }`}
+                            disabled={!url}
+                          >
+                            <span>{icon}</span>
+                            <span className="text-[var(--foreground)]">{filename}</span>
+                            {size > 0 && (
+                              <span className="text-xs text-[var(--muted)]">
+                                ({size >= 1024 * 1024 
+                                  ? `${(size / (1024 * 1024)).toFixed(1)}MB` 
+                                  : `${Math.round(size / 1024)}KB`})
+                              </span>
+                            )}
+                            {canPreview && <span className="text-[var(--accent)]" title="Preview">👁</span>}
+                          </button>
+                          {url && (
+                            <a
+                              href={url}
+                              download={filename}
+                              className="p-2 rounded-lg border border-[var(--border)] text-xs hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 transition-colors"
+                              title="Download"
+                            >
+                              ↓
+                            </a>
                           )}
-                          {url && <span className="text-[var(--accent)]">↓</span>}
-                        </a>
+                        </div>
                       );
                     })}
                   </div>
@@ -806,6 +825,56 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                   <>✅ Confirm Award & Generate Excel</>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setPreviewFile(null)}
+          />
+          <div className="relative bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-3 border-b border-[var(--border)] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">📄</span>
+                <h3 className="font-semibold text-[var(--foreground)] truncate">{previewFile.filename}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewFile.url}
+                  download={previewFile.filename}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
+                >
+                  ↓ Download
+                </a>
+                <a
+                  href={previewFile.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
+                >
+                  ↗ Open in Tab
+                </a>
+                <button
+                  onClick={() => setPreviewFile(null)}
+                  className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--background)] transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            {/* PDF Viewer */}
+            <div className="flex-1 min-h-0">
+              <iframe
+                src={previewFile.url}
+                className="w-full h-full border-0"
+                title={`Preview: ${previewFile.filename}`}
+              />
             </div>
           </div>
         </div>
