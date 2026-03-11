@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import BidTable from '@/components/BidTable';
 import WorkflowQueue from '@/components/WorkflowQueue';
+import WorkQueuePanel from '@/components/WorkQueue';
 import BidDetailModal from '@/components/BidDetailModal';
 import { Bid } from '@/types';
 import { getRFQSummary, RFQSummary } from '@/lib/api';
@@ -38,6 +39,7 @@ export default function SourceDashboard() {
     || SOURCE_NAMES[normalizedKey.replace(/ /g, '-')]
     || sourceKey?.charAt(0).toUpperCase() + sourceKey?.slice(1);
   const isCACI = normalizedKey === 'caci';
+  const isLogistico = normalizedKey === 'logistico';
   
   const [bids, setBids] = useState<Bid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -299,12 +301,41 @@ export default function SourceDashboard() {
 
         {/* Source Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[var(--foreground)]">{sourceName}</h1>
-          <p className="text-[var(--muted)] mt-1">Bid opportunities from {sourceName}</p>
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">
+            {isLogistico ? 'Action Items' : sourceName}
+          </h1>
+          <p className="text-[var(--muted)] mt-1">
+            {isLogistico 
+              ? 'Your daily work queue — quotes to review, RFQs awaiting responses, bids ready to submit'
+              : `Bid opportunities from ${sourceName}`
+            }
+          </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {/* Work Queue for Logistico */}
+        {isLogistico && (
+          <WorkQueuePanel
+            onBidClick={(bidId) => {
+              const bid = bids.find(b => b.id === bidId);
+              if (bid) {
+                setSelectedBid(bid);
+              } else {
+                // Bid might be from another source — fetch it directly
+                fetch(`/api/bids?id=${bidId}`)
+                  .then(r => r.json())
+                  .then(data => {
+                    if (data.success && data.data?.[0]) {
+                      setSelectedBid(data.data[0]);
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
+          />
+        )}
+
+        {/* Stats Cards (non-Logistico sources) */}
+        {!isLogistico && <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-[var(--card)] rounded-xl p-4 border border-[var(--border)]">
             <p className="text-2xl font-bold text-[var(--foreground)]">{stats.total}</p>
             <p className="text-xs text-[var(--muted)]">Total Active</p>
@@ -329,9 +360,10 @@ export default function SourceDashboard() {
             <p className="text-2xl font-bold text-[var(--muted)]">{stats.total - stats.reviewed}</p>
             <p className="text-xs text-[var(--muted)]">Unreviewed</p>
           </div>
-        </div>
+        </div>}
 
         {/* Filter Tabs & Search */}
+        {!isLogistico && (
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="flex gap-2 flex-wrap">
             {[
@@ -393,9 +425,10 @@ export default function SourceDashboard() {
             </div>
           )}
         </div>
+        )}
 
         {/* CACI Login Panel (shown when login tab selected) */}
-        {statusFilter === 'login' && isCACI && (
+        {!isLogistico && statusFilter === 'login' && isCACI && (
           <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 mb-8">
             <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">CACI Session Management</h2>
             
@@ -496,7 +529,7 @@ export default function SourceDashboard() {
         )}
 
         {/* View Mode Toggle */}
-        {statusFilter !== 'login' && (
+        {!isLogistico && statusFilter !== 'login' && (
           <div className="flex items-center gap-3 mb-4">
             <span className="text-sm text-[var(--muted)]">View:</span>
             <div className="flex rounded-lg border border-[var(--border)] overflow-hidden">
@@ -524,8 +557,8 @@ export default function SourceDashboard() {
           </div>
         )}
 
-        {/* Bid Table or Workflow Queue (hide on login tab) */}
-        {statusFilter !== 'login' && viewMode === 'table' && (
+        {/* Bid Table or Workflow Queue (hide on login tab and Logistico) */}
+        {!isLogistico && statusFilter !== 'login' && viewMode === 'table' && (
           <BidTable 
             bids={filteredBids} 
             searchQuery={searchQuery} 
@@ -538,7 +571,7 @@ export default function SourceDashboard() {
             analyzingBidId={analyzingBidId}
           />
         )}
-        {statusFilter !== 'login' && viewMode === 'queue' && (
+        {!isLogistico && statusFilter !== 'login' && viewMode === 'queue' && (
           <WorkflowQueue
             bids={filteredBids}
             onSelectBid={setSelectedBid}

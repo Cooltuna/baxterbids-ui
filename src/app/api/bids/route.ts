@@ -16,6 +16,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sourceFilter = searchParams.get('source');
+    const bidId = searchParams.get('id');
+    
+    // Fetch single bid by ID
+    if (bidId) {
+      const { fetchBidById } = await import('@/lib/supabase');
+      const bid = await fetchBidById(bidId);
+      if (bid) {
+        return NextResponse.json({
+          success: true,
+          data: [bid],  // Already transformed by fetchBidById
+        });
+      }
+      return NextResponse.json({ success: false, data: [], error: 'Bid not found' });
+    }
     
     // Fetch bids - either all or by source
     let bids;
