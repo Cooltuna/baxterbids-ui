@@ -46,6 +46,7 @@ export default function SourceDashboard() {
   const [timestamp, setTimestamp] = useState<string>();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBid, setSelectedBid] = useState<Bid | null>(null);
+  const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [rfqSummary, setRfqSummary] = useState<RFQSummary>({});
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [autoAnalyze, setAutoAnalyze] = useState(false);
@@ -316,11 +317,12 @@ export default function SourceDashboard() {
         {isLogistico && (
           <WorkQueuePanel
             onBidClick={(bidId) => {
+              setInitialTab('quotes');
               const bid = bids.find(b => b.id === bidId);
               if (bid) {
                 setSelectedBid(bid);
               } else {
-                // Bid might be from another source — fetch it directly
+                // Bid is from another source — fetch it directly
                 fetch(`/api/bids?id=${bidId}`)
                   .then(r => r.json())
                   .then(data => {
@@ -593,10 +595,11 @@ export default function SourceDashboard() {
       {/* Bid Detail Modal */}
       <BidDetailModal 
         bid={selectedBid}
-        onClose={handleModalClose}
+        onClose={() => { handleModalClose(); setInitialTab(undefined); }}
         autoAnalyze={autoAnalyze}
         onAnalysisComplete={handleAnalysisComplete}
         onRefresh={handleBidRefresh}
+        initialTab={initialTab as any}
       />
     </div>
   );

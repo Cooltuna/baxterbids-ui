@@ -56,7 +56,6 @@ export default function WorkQueuePanel({ onBidClick }: WorkQueueProps) {
   const [data, setData] = useState<WorkQueueData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'responses' | 'awaiting' | 'ready'>('responses');
 
   const fetchQueue = useCallback(async () => {
     try {
@@ -67,7 +66,7 @@ export default function WorkQueuePanel({ onBidClick }: WorkQueueProps) {
         setData(json);
         setError(null);
       } else {
-        setError(json.detail || 'Failed to load work queue');
+        setError(json.detail || 'Failed to load');
       }
     } catch (e: any) {
       setError(e.message || 'Network error');
@@ -78,53 +77,61 @@ export default function WorkQueuePanel({ onBidClick }: WorkQueueProps) {
 
   useEffect(() => {
     fetchQueue();
-    const interval = setInterval(fetchQueue, 60000); // Refresh every minute
+    const interval = setInterval(fetchQueue, 60000);
     return () => clearInterval(interval);
   }, [fetchQueue]);
-
-  const daysUntil = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const d = new Date(dateStr);
-    d.setHours(0, 0, 0, 0);
-    return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  };
-
-  const closeDateBadge = (dateStr: string | null) => {
-    const days = daysUntil(dateStr);
-    if (days === null) return null;
-    if (days < 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--muted)]/20 text-[var(--muted)]">Expired</span>;
-    if (days === 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--danger)]/10 text-[var(--danger)] font-medium">Today!</span>;
-    if (days <= 3) return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 font-medium">{days}d left</span>;
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--muted)]/10 text-[var(--muted)]">{days}d</span>;
-  };
-
-  const sourceBadge = (source: string) => {
-    const colors: Record<string, string> = {
-      'HigherGov HUBZone': 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-      'CACI': 'bg-purple-500/10 text-purple-500 border-purple-500/30',
-      'Fairmarkit': 'bg-green-500/10 text-green-500 border-green-500/30',
-      'Logistico': 'bg-orange-500/10 text-orange-500 border-orange-500/30',
-      'HigherGov IDIQ': 'bg-cyan-500/10 text-cyan-500 border-cyan-500/30',
-    };
-    return (
-      <span className={`text-xs px-2 py-0.5 rounded-full border ${colors[source] || 'bg-[var(--muted)]/10 text-[var(--muted)] border-[var(--muted)]/30'}`}>
-        {source}
-      </span>
-    );
-  };
 
   const fmt = (n: number | null) => {
     if (n === null || n === undefined) return '—';
     return `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const daysUntil = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
+    return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const closeBadge = (dateStr: string | null) => {
+    const days = daysUntil(dateStr);
+    if (days === null) return null;
+    if (days < 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--muted)]/20 text-[var(--muted)]">Expired</span>;
+    if (days === 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--danger)]/10 text-[var(--danger)] font-medium">Due Today!</span>;
+    if (days <= 3) return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-500 font-medium">{days}d left</span>;
+    return <span className="text-xs text-[var(--muted)]">{days}d</span>;
+  };
+
+  const sourceBadge = (source: string) => {
+    const colors: Record<string, string> = {
+      'HigherGov HUBZone': 'bg-blue-500/10 text-blue-500',
+      'CACI': 'bg-purple-500/10 text-purple-500',
+      'Fairmarkit': 'bg-green-500/10 text-green-500',
+      'Logistico': 'bg-orange-500/10 text-orange-500',
+      'HigherGov IDIQ': 'bg-cyan-500/10 text-cyan-500',
+    };
+    return (
+      <span className={`text-xs px-2 py-0.5 rounded-full ${colors[source] || 'bg-[var(--muted)]/10 text-[var(--muted)]'}`}>
+        {source}
+      </span>
+    );
+  };
+
+  const timeAgo = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const hours = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60));
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
         <div className="w-8 h-8 mx-auto border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="text-sm text-[var(--muted)]">Loading work queue...</p>
+        <p className="text-sm text-[var(--muted)]">Loading action items...</p>
       </div>
     );
   }
@@ -140,196 +147,165 @@ export default function WorkQueuePanel({ onBidClick }: WorkQueueProps) {
 
   if (!data) return null;
 
-  const counts = data.counts;
-  const totalItems = counts.new_responses + counts.awaiting_response + counts.ready_to_submit;
+  const { new_responses, awaiting_response, ready_to_submit, counts } = data;
+  const allItems = [...new_responses, ...awaiting_response, ...ready_to_submit];
 
   return (
-    <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+    <div className="space-y-8">
+      {/* Summary bar */}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[var(--accent)]"></span>
+          <span className="text-[var(--foreground)] font-medium">{counts.new_responses}</span>
+          <span className="text-[var(--muted)]">new quotes</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span className="text-[var(--foreground)] font-medium">{counts.awaiting_response}</span>
+          <span className="text-[var(--muted)]">awaiting vendors</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[var(--success)]"></span>
+          <span className="text-[var(--foreground)] font-medium">{counts.ready_to_submit}</span>
+          <span className="text-[var(--muted)]">ready to submit</span>
+        </div>
         <button
-          onClick={() => setActiveTab('responses')}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            activeTab === 'responses'
-              ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-              : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-          }`}
+          onClick={fetchQueue}
+          className="ml-auto text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
         >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">📬</span>
-            <span className="text-2xl font-bold text-[var(--foreground)]">{counts.new_responses}</span>
-          </div>
-          <p className="text-xs text-[var(--muted)]">Quotes to Review</p>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('awaiting')}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            activeTab === 'awaiting'
-              ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-              : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">⏳</span>
-            <span className="text-2xl font-bold text-[var(--foreground)]">{counts.awaiting_response}</span>
-          </div>
-          <p className="text-xs text-[var(--muted)]">Awaiting Vendors</p>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('ready')}
-          className={`p-4 rounded-xl border text-left transition-all ${
-            activeTab === 'ready'
-              ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-              : 'border-[var(--border)] hover:border-[var(--accent)]/50'
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">✅</span>
-            <span className="text-2xl font-bold text-[var(--foreground)]">{counts.ready_to_submit}</span>
-          </div>
-          <p className="text-xs text-[var(--muted)]">Ready to Submit</p>
+          🔄 Refresh
         </button>
       </div>
 
-      {totalItems === 0 && (
-        <div className="text-center py-8">
+      {/* ─── New Vendor Quotes ─── */}
+      {new_responses.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--accent)] uppercase tracking-wider mb-3">
+            📬 New Vendor Quotes
+          </h3>
+          <div className="space-y-2">
+            {new_responses.map((bid) => (
+              <div
+                key={bid.bid_id}
+                onClick={() => onBidClick?.(bid.bid_id)}
+                className="p-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 hover:border-[var(--accent)] transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-bold text-[var(--foreground)]">{bid.solicitation}</span>
+                    {sourceBadge(bid.source)}
+                    {closeBadge(bid.close_date)}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {bid.pending_quotes?.map((q, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-[var(--foreground)]">{q.vendor}</span>
+                        {q.has_attachments && <span className="text-xs">📎</span>}
+                        {q.confidence !== null && q.confidence < 0.7 && (
+                          <span className="text-xs text-yellow-500" title={`${Math.round(q.confidence * 100)}% parse confidence`}>⚠️ low confidence</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-[var(--accent)]">{fmt(q.total)}</span>
+                        <span className="text-xs text-[var(--muted)]">{timeAgo(q.date)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Awaiting Vendor Response ─── */}
+      {awaiting_response.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-yellow-500 uppercase tracking-wider mb-3">
+            ⏳ Awaiting Vendor Response
+          </h3>
+          <div className="space-y-2">
+            {awaiting_response.map((bid) => {
+              const hasFollowUp = bid.waiting_on?.some(w => w.needs_followup);
+              return (
+                <div
+                  key={bid.bid_id}
+                  onClick={() => onBidClick?.(bid.bid_id)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                    hasFollowUp
+                      ? 'border-[var(--danger)]/30 bg-[var(--danger)]/5 hover:border-[var(--danger)]'
+                      : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--accent)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-[var(--foreground)]">{bid.solicitation}</span>
+                      {sourceBadge(bid.source)}
+                      {closeBadge(bid.close_date)}
+                      {hasFollowUp && <span className="text-xs text-[var(--danger)] font-medium">🔔 Follow up</span>}
+                    </div>
+                    <span className="text-xs text-[var(--muted)]">
+                      {bid.rfqs_responded}/{bid.total_rfqs} responded
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {bid.waiting_on?.map((w, idx) => (
+                      <span
+                        key={idx}
+                        className={`text-xs px-2 py-1 rounded-lg ${
+                          w.needs_followup
+                            ? 'bg-[var(--danger)]/10 text-[var(--danger)]'
+                            : 'bg-[var(--background)] text-[var(--muted)]'
+                        }`}
+                      >
+                        {w.vendor.split('@')[0]} · {w.days_waiting}d
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ─── Ready to Submit ─── */}
+      {ready_to_submit.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--success)] uppercase tracking-wider mb-3">
+            ✅ Ready to Submit
+          </h3>
+          <div className="space-y-2">
+            {ready_to_submit.map((bid) => (
+              <div
+                key={bid.bid_id}
+                onClick={() => onBidClick?.(bid.bid_id)}
+                className="p-4 rounded-xl border border-[var(--success)]/30 bg-[var(--success)]/5 hover:border-[var(--success)] transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-bold text-[var(--foreground)]">{bid.solicitation}</span>
+                    {sourceBadge(bid.source)}
+                    {closeBadge(bid.close_date)}
+                  </div>
+                  <span className="text-xs text-[var(--success)] font-medium">
+                    {bid.quotes_received} quote{bid.quotes_received !== 1 ? 's' : ''} ready
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {allItems.length === 0 && (
+        <div className="text-center py-12">
           <div className="text-4xl mb-3">🎯</div>
           <h3 className="text-lg font-semibold text-[var(--foreground)]">All Clear</h3>
-          <p className="text-sm text-[var(--muted)]">No pending actions. Check back later or send more RFQs.</p>
-        </div>
-      )}
-
-      {/* Quotes to Review */}
-      {activeTab === 'responses' && data.new_responses.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">
-            Vendor Quotes — Pending Review
-          </h3>
-          {data.new_responses.map((bid) => (
-            <div
-              key={bid.bid_id}
-              onClick={() => onBidClick?.(bid.bid_id)}
-              className="p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--accent)] transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-[var(--foreground)]">{bid.solicitation}</span>
-                  {sourceBadge(bid.source)}
-                  {closeDateBadge(bid.close_date)}
-                </div>
-                <span className="text-xs text-[var(--muted)]">
-                  {bid.quotes_received} quote{bid.quotes_received !== 1 ? 's' : ''} / {bid.total_rfqs} RFQs
-                </span>
-              </div>
-              <p className="text-sm text-[var(--muted)] mb-3 truncate">{bid.title}</p>
-              <div className="flex flex-wrap gap-2">
-                {bid.pending_quotes?.map((q, idx) => (
-                  <div key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/20 text-sm">
-                    <span className="font-medium text-[var(--foreground)]">{q.vendor}</span>
-                    <span className="text-[var(--accent)] font-semibold">{fmt(q.total)}</span>
-                    {q.has_attachments && <span title="Has attachments">📎</span>}
-                    {q.confidence !== null && q.confidence < 0.7 && (
-                      <span className="text-yellow-500 text-xs" title={`${Math.round(q.confidence * 100)}% parse confidence`}>⚠️</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'responses' && data.new_responses.length === 0 && (
-        <div className="text-center py-6 text-sm text-[var(--muted)]">
-          No quotes pending review.
-        </div>
-      )}
-
-      {/* Awaiting Vendor Response */}
-      {activeTab === 'awaiting' && data.awaiting_response.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">
-            RFQs Sent — Waiting for Vendors
-          </h3>
-          {data.awaiting_response.map((bid) => (
-            <div
-              key={bid.bid_id}
-              onClick={() => onBidClick?.(bid.bid_id)}
-              className="p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--accent)] transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-[var(--foreground)]">{bid.solicitation}</span>
-                  {sourceBadge(bid.source)}
-                  {closeDateBadge(bid.close_date)}
-                </div>
-                <span className="text-xs text-[var(--muted)]">
-                  {bid.rfqs_responded}/{bid.total_rfqs} responded
-                </span>
-              </div>
-              <p className="text-sm text-[var(--muted)] mb-3 truncate">{bid.title}</p>
-              <div className="flex flex-wrap gap-2">
-                {bid.waiting_on?.map((w, idx) => (
-                  <div
-                    key={idx}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border ${
-                      w.needs_followup
-                        ? 'bg-[var(--danger)]/5 border-[var(--danger)]/20'
-                        : 'bg-[var(--background)] border-[var(--border)]'
-                    }`}
-                  >
-                    <span className="text-[var(--foreground)]">{w.vendor.split('@')[0]}</span>
-                    <span className={`text-xs ${w.needs_followup ? 'text-[var(--danger)] font-medium' : 'text-[var(--muted)]'}`}>
-                      {w.days_waiting}d
-                    </span>
-                    {w.needs_followup && <span title="Follow up needed">🔔</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'awaiting' && data.awaiting_response.length === 0 && (
-        <div className="text-center py-6 text-sm text-[var(--muted)]">
-          No RFQs awaiting vendor responses.
-        </div>
-      )}
-
-      {/* Ready to Submit */}
-      {activeTab === 'ready' && data.ready_to_submit.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider">
-            All Quotes In — Ready to Submit
-          </h3>
-          {data.ready_to_submit.map((bid) => (
-            <div
-              key={bid.bid_id}
-              onClick={() => onBidClick?.(bid.bid_id)}
-              className="p-4 rounded-xl border border-[var(--success)]/30 bg-[var(--success)]/5 hover:border-[var(--success)] transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-[var(--foreground)]">{bid.solicitation}</span>
-                  {sourceBadge(bid.source)}
-                  {closeDateBadge(bid.close_date)}
-                </div>
-                <span className="text-xs text-[var(--success)] font-medium">
-                  ✅ {bid.quotes_received} quote{bid.quotes_received !== 1 ? 's' : ''} ready
-                </span>
-              </div>
-              <p className="text-sm text-[var(--muted)] truncate">{bid.title}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'ready' && data.ready_to_submit.length === 0 && (
-        <div className="text-center py-6 text-sm text-[var(--muted)]">
-          No bids ready to submit yet.
+          <p className="text-sm text-[var(--muted)]">No pending actions. Send RFQs from the source dashboards to get started.</p>
         </div>
       )}
     </div>

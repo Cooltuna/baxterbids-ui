@@ -14,6 +14,7 @@ interface BidDetailModalProps {
   autoAnalyze?: boolean;
   onAnalysisComplete?: () => void;
   onRefresh?: (updatedBid: Bid) => void;
+  initialTab?: 'summary' | 'intel' | 'docs' | 'bom' | 'vendors' | 'rfq' | 'quotes';
 }
 
 // Helper function to get file icon based on type
@@ -54,8 +55,8 @@ function getFileIcon(fileType: string) {
 
 type Tab = 'summary' | 'intel' | 'docs' | 'bom' | 'vendors' | 'rfq' | 'quotes';
 
-export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete, onRefresh }: BidDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('summary');
+export default function BidDetailModal({ bid, onClose, autoAnalyze = false, onAnalysisComplete, onRefresh, initialTab }: BidDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || 'summary');
   const [summary, setSummary] = useState<BidSummary | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [vendorMatrix, setVendorMatrix] = useState<VendorMatrixResult | null>(null);
@@ -282,7 +283,7 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
       setSelectedItems(new Set());
       setVendorMatrix(null);
       setError(null);
-      setActiveTab('summary');
+      setActiveTab(initialTab || 'summary');
       setShowPasteBom(false);
       setBomText('');
       setIsFromCache(false);
