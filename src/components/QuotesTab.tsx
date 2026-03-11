@@ -461,10 +461,15 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                   <h5 className="text-xs font-semibold text-[var(--muted)] uppercase mb-2">📎 Attachments</h5>
                   <div className="flex flex-wrap gap-2">
                     {quote.attachment_urls.map((att, idx) => {
-                      const isObj = typeof att === 'object' && att !== null;
-                      const filename = isObj ? (att as QuoteAttachment).filename : String(att);
-                      const url = isObj ? (att as QuoteAttachment).url : null;
-                      const size = isObj ? (att as QuoteAttachment).size : 0;
+                      // Handle both object and JSON-string formats
+                      let parsed = att;
+                      if (typeof att === 'string') {
+                        try { parsed = JSON.parse(att); } catch { parsed = att; }
+                      }
+                      const isObj = typeof parsed === 'object' && parsed !== null;
+                      const filename = isObj ? (parsed as QuoteAttachment).filename : String(parsed);
+                      const url = isObj ? (parsed as QuoteAttachment).url : null;
+                      const size = isObj ? (parsed as QuoteAttachment).size : 0;
                       const ext = filename.split('.').pop()?.toLowerCase() || '';
                       const icon = ext === 'pdf' ? '📄' : ext === 'xlsx' || ext === 'xls' ? '📊' : ext === 'csv' ? '📋' : '📁';
                       
