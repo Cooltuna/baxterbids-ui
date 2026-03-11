@@ -22,6 +22,8 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
   const [isAwarding, setIsAwarding] = useState(false);
   const [awardResult, setAwardResult] = useState<{ success: boolean; message: string; excelFile?: string } | null>(null);
   const [marginPct, setMarginPct] = useState(20);
+  const [marginFixed, setMarginFixed] = useState(0);
+  const [marginMode, setMarginMode] = useState<'pct' | 'fixed'>('pct');
   const [showAwardModal, setShowAwardModal] = useState<{ type: 'single' | 'best-mix'; quoteId?: string; vendorName?: string } | null>(null);
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string; filename: string; type: string } | null>(null);
@@ -108,7 +110,8 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
         body: JSON.stringify({
           bid_id: bidId,
           quote_id: quoteId,
-          margin_pct: marginPct,
+          margin_pct: marginMode === 'pct' ? marginPct : 0,
+          margin_fixed: marginMode === 'fixed' ? marginFixed : 0,
         }),
       });
       const data = await res.json();
@@ -139,7 +142,8 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bid_id: bidId,
-          margin_pct: marginPct,
+          margin_pct: marginMode === 'pct' ? marginPct : 0,
+          margin_fixed: marginMode === 'fixed' ? marginFixed : 0,
         }),
       });
       const data = await res.json();
@@ -739,37 +743,76 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
             </div>
 
             <div className="px-6 py-5 space-y-4">
-              {/* Margin selector */}
+              {/* Margin mode toggle */}
               <div>
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
                   Markup / Margin
                 </label>
-                <div className="flex items-center gap-3">
-                  {[15, 20, 25, 30].map((pct) => (
-                    <button
-                      key={pct}
-                      onClick={() => setMarginPct(pct)}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                        marginPct === pct
-                          ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
-                          : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
-                      }`}
-                    >
-                      {pct}%
-                    </button>
-                  ))}
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 mb-3 p-1 bg-[var(--background)] rounded-lg w-fit">
+                  <button
+                    onClick={() => setMarginMode('pct')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      marginMode === 'pct'
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    Percentage %
+                  </button>
+                  <button
+                    onClick={() => setMarginMode('fixed')}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      marginMode === 'fixed'
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+                    }`}
+                  >
+                    Fixed Amount $
+                  </button>
+                </div>
+
+                {marginMode === 'pct' ? (
+                  <div className="flex items-center gap-3">
+                    {[15, 20, 25, 30].map((pct) => (
+                      <button
+                        key={pct}
+                        onClick={() => setMarginPct(pct)}
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                          marginPct === pct
+                            ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                            : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={marginPct}
+                        onChange={(e) => setMarginPct(Number(e.target.value))}
+                        className="w-16 px-2 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-center"
+                        min={0}
+                        max={100}
+                      />
+                      <span className="text-sm text-[var(--muted)]">%</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[var(--muted)]">$</span>
                     <input
                       type="number"
-                      value={marginPct}
-                      onChange={(e) => setMarginPct(Number(e.target.value))}
-                      className="w-16 px-2 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-center"
+                      value={marginFixed || ''}
+                      onChange={(e) => setMarginFixed(Number(e.target.value))}
+                      placeholder="0.00"
+                      className="w-32 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)]"
                       min={0}
-                      max={100}
+                      step={0.01}
                     />
-                    <span className="text-sm text-[var(--muted)]">%</span>
+                    <span className="text-sm text-[var(--muted)]">per unit</span>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Preview */}
@@ -777,7 +820,13 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                 const q = quotes.find(q => q.id === showAwardModal.quoteId);
                 if (!q || !q.items) return null;
                 const itemTotal = q.items.reduce((s, i) => s + (Number(i.extended_price) || 0), 0);
-                const sellTotal = itemTotal * (1 + marginPct / 100);
+                const totalQty = q.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                const sellTotal = marginMode === 'fixed'
+                  ? itemTotal + (marginFixed * totalQty)
+                  : itemTotal * (1 + marginPct / 100);
+                const markupLabel = marginMode === 'fixed'
+                  ? `+$${marginFixed.toFixed(2)}/unit`
+                  : `${marginPct}% markup`;
                 return (
                   <div className="p-3 rounded-lg bg-[var(--background)] text-sm space-y-1">
                     <div className="flex justify-between">
@@ -785,7 +834,7 @@ export default function QuotesTab({ bidId, bidTitle }: QuotesTabProps) {
                       <span className="font-medium">{fmt(itemTotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[var(--muted)]">Sell Total ({marginPct}% markup)</span>
+                      <span className="text-[var(--muted)]">Sell Total ({markupLabel})</span>
                       <span className="font-bold text-[var(--success)]">{fmt(sellTotal)}</span>
                     </div>
                     <div className="flex justify-between">
