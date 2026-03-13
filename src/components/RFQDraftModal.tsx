@@ -84,7 +84,7 @@ export default function RFQDraftModal({
 
       if (response.ok) {
         const data = await response.json();
-        if (data.email) {
+        if (data.email || data.phone || data.website || data.address) {
           setVendorContact(data);
         }
       }
