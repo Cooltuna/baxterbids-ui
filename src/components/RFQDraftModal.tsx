@@ -42,12 +42,58 @@ export default function RFQDraftModal({
   const [copied, setCopied] = useState(false);
   const [attachExcel, setAttachExcel] = useState(items.length > 10);  // Auto-enable for large BOMs
 
+  // Vendor contact lookup state
+  const [vendorContact, setVendorContact] = useState<{
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    website?: string;
+    contact_name?: string;
+    source?: string;
+    confidence?: string;
+  } | null>(null);
+  const [isLookingUp, setIsLookingUp] = useState(false);
+
   // Generate draft when modal opens
   useEffect(() => {
     if (isOpen && !subject) {
       generateDraft();
+      lookupVendorContact();
     }
   }, [isOpen]);
+
+  // Look up vendor contact info
+  const lookupVendorContact = async () => {
+    setIsLookingUp(true);
+    try {
+      // Extract CAGE code from vendor.website if it has "CAGE: XXXXX"
+      const cageMatch = vendor.website?.match(/CAGE:\s*(\w+)/);
+      const cageCode = cageMatch ? cageMatch[1] : undefined;
+
+      const response = await fetch(`${API_BASE}/vendor/contact-lookup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_name: vendor.name,
+          cage_code: cageCode
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.email) {
+          setVendorContact(data);
+        }
+      }
+    } catch (err) {
+      console.warn('Vendor contact lookup failed:', err);
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
 
   const generateDraft = async () => {
     setIsGenerating(true);
@@ -233,6 +279,65 @@ export default function RFQDraftModal({
             ) : (
               /* Edit Mode */
               <div className="space-y-4">
+                {/* Vendor Contact Info Banner */}
+                {isLookingUp && (
+                  <div className="p-3 rounded-lg bg-[var(--accent)]/5 border border-[var(--accent)]/30">
+                    <div className="flex items-center gap-2 text-sm text-[var(--accent)]">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Looking up vendor contact info...
+                    </div>
+                  </div>
+                )}
+                {vendorContact && !isLookingUp && (
+                  <div className="p-3 rounded-lg bg-[var(--success)]/5 border border-[var(--success)]/30">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-[var(--success)] uppercase tracking-wider">
+                        📇 Vendor Contact Found
+                        <span className="ml-2 font-normal opacity-75">
+                          ({vendorContact.source === 'odoo_database' ? 'Internal DB' : vendorContact.source === 'web_search' ? 'Web Search' : vendorContact.source} · {vendorContact.confidence} confidence)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm">
+                      <div>
+                        <span className="text-[var(--muted)]">Email: </span>
+                        <span className="font-medium text-[var(--foreground)]">{vendorContact.email}</span>
+                      </div>
+                      {vendorContact.phone && (
+                        <div>
+                          <span className="text-[var(--muted)]">Phone: </span>
+                          <span className="text-[var(--foreground)]">{vendorContact.phone}</span>
+                        </div>
+                      )}
+                      {(vendorContact.address || vendorContact.city) && (
+                        <div className="md:col-span-2">
+                          <span className="text-[var(--muted)]">Address: </span>
+                          <span className="text-[var(--foreground)]">
+                            {[vendorContact.address, vendorContact.city, vendorContact.state, vendorContact.zip].filter(Boolean).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      {vendorContact.website && (
+                        <div>
+                          <span className="text-[var(--muted)]">Web: </span>
+                          <a href={vendorContact.website} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
+                            {vendorContact.website.replace(/^https?:\/\/(www\.)?/, '')}
+                          </a>
+                        </div>
+                      )}
+                      {vendorContact.contact_name && (
+                        <div>
+                          <span className="text-[var(--muted)]">Contact: </span>
+                          <span className="text-[var(--foreground)]">{vendorContact.contact_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-[var(--foreground)] mb-1">
                     Send To (Internal Review)
@@ -246,7 +351,13 @@ export default function RFQDraftModal({
                   />
                   <p className="text-xs text-[var(--muted)] mt-1">
                     From: logisticorfq@gmail.com → Routed to internal review before vendor delivery
-                    {vendor.contact && <span className="ml-1">(Intended vendor: {vendor.contact})</span>}
+                    {vendorContact?.email ? (
+                      <span className="ml-1 text-[var(--success)]">
+                        (Vendor email: <strong>{vendorContact.email}</strong>)
+                      </span>
+                    ) : vendor.contact ? (
+                      <span className="ml-1">(Intended vendor: {vendor.contact})</span>
+                    ) : null}
                   </p>
                 </div>
                 <div>
