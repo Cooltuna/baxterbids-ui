@@ -35,8 +35,8 @@ export default function Header({ onRefresh, lastSync = 'Never', isLoading = fals
             <a href="/" className="text-sm font-medium text-[var(--foreground)] hover:text-[var(--accent)] transition-colors">
               Dashboard
             </a>
-            <a href="#" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
-              Sources
+            <a href="/reports" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
+              Reports
             </a>
             <a href="#" className="text-sm font-medium text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
               Analytics
