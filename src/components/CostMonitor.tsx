@@ -2,35 +2,49 @@
 
 import { useState, useEffect } from 'react';
 
-interface UsageData {
+interface CombinedUsage {
   period_days: number;
-  overall: {
-    calls: number | null;
-    total_input: number | null;
-    total_output: number | null;
-    total_cost: number | null;
+  combined: {
+    total_cost: number;
+    total_calls: number;
   };
-  by_script: Array<{
-    script: string;
-    calls: number;
-    input_tokens: number;
-    output_tokens: number;
-    cost: number;
-  }>;
-  by_model: Array<{
-    model: string;
-    calls: number;
-    input_tokens: number;
-    output_tokens: number;
-    cost: number;
-  }>;
-  by_day: Array<{
-    date: string;
-    calls: number;
-    input_tokens: number;
-    output_tokens: number;
-    cost: number;
-  }>;
+  openclaw: {
+    total_cost: number;
+    total_calls: number;
+    total_input?: number;
+    total_output?: number;
+    total_cache_read?: number;
+    total_cache_write?: number;
+    by_day?: Array<{
+      date: string;
+      calls: number;
+      cost: number;
+    }>;
+    by_model?: Array<{
+      model: string;
+      calls: number;
+      cost: number;
+    }>;
+    by_session_type?: Array<{
+      type: string;
+      calls: number;
+      cost: number;
+    }>;
+  };
+  scripts: {
+    total_cost: number;
+    total_calls: number;
+    by_script?: Array<{
+      script: string;
+      calls: number;
+      cost: number;
+    }>;
+    by_model?: Array<{
+      model: string;
+      calls: number;
+      cost: number;
+    }>;
+  };
 }
 
 const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
@@ -38,7 +52,7 @@ const API_BASE = typeof window !== 'undefined' && window.location.hostname !== '
   : 'http://localhost:8000';
 
 export default function CostMonitor() {
-  const [usage, setUsage] = useState<UsageData | null>(null);
+  const [usage, setUsage] = useState<CombinedUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -65,21 +79,17 @@ export default function CostMonitor() {
     }
   };
 
-  const formatNumber = (n: number | null) => {
-    if (n === null || n === undefined) return '0';
-    return n.toLocaleString();
-  };
-
-  const formatCost = (n: number | null) => {
+  const formatCost = (n: number | null | undefined) => {
     if (n === null || n === undefined) return '$0.00';
-    return `$${n.toFixed(4)}`;
+    return n >= 1 ? `$${n.toFixed(2)}` : `$${n.toFixed(4)}`;
   };
 
   const shortModel = (model: string) => {
     return model
       .replace('claude-', '')
       .replace('-20250514', '')
-      .replace('-20250214', '');
+      .replace('-20250214', '')
+      .replace('delivery-mirror', '📨 delivery');
   };
 
   if (loading && !usage) {
@@ -98,8 +108,11 @@ export default function CostMonitor() {
     );
   }
 
-  const totalCost = usage?.overall?.total_cost ?? 0;
-  const totalCalls = usage?.overall?.calls ?? 0;
+  const totalCost = usage?.combined?.total_cost ?? 0;
+  const ocCost = usage?.openclaw?.total_cost ?? 0;
+  const scriptCost = usage?.scripts?.total_cost ?? 0;
+  const dailyAvg = totalCost / (usage?.period_days || 1);
+  const monthlyProjection = dailyAvg * 30;
 
   return (
     <div className="bg-gray-800 rounded-lg p-3 text-sm">
@@ -113,7 +126,7 @@ export default function CostMonitor() {
           <span className="text-gray-400">({days}d)</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`font-mono font-bold ${totalCost > 1 ? 'text-yellow-400' : 'text-green-400'}`}>
+          <span className={`font-mono font-bold ${totalCost > 50 ? 'text-red-400' : totalCost > 10 ? 'text-yellow-400' : 'text-green-400'}`}>
             {formatCost(totalCost)}
           </span>
           <span className="text-gray-500">{expanded ? '▼' : '▶'}</span>
@@ -139,28 +152,53 @@ export default function CostMonitor() {
             ))}
           </div>
 
-          {/* Summary */}
+          {/* Cost breakdown */}
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-gray-700/50 rounded p-2">
-              <div className="text-gray-400 text-xs">Calls</div>
-              <div className="text-white font-medium">{formatNumber(totalCalls)}</div>
+              <div className="text-gray-400 text-xs">🤖 OpenClaw</div>
+              <div className={`font-mono font-medium ${ocCost > 20 ? 'text-yellow-400' : 'text-white'}`}>{formatCost(ocCost)}</div>
+              <div className="text-gray-500 text-xs">{usage.openclaw?.total_calls ?? 0} calls</div>
             </div>
             <div className="bg-gray-700/50 rounded p-2">
-              <div className="text-gray-400 text-xs">Input</div>
-              <div className="text-white font-medium">{formatNumber(usage.overall?.total_input)}t</div>
+              <div className="text-gray-400 text-xs">📜 Scripts</div>
+              <div className={`font-mono font-medium ${scriptCost > 20 ? 'text-yellow-400' : 'text-white'}`}>{formatCost(scriptCost)}</div>
+              <div className="text-gray-500 text-xs">{usage.scripts?.total_calls ?? 0} calls</div>
             </div>
             <div className="bg-gray-700/50 rounded p-2">
-              <div className="text-gray-400 text-xs">Output</div>
-              <div className="text-white font-medium">{formatNumber(usage.overall?.total_output)}t</div>
+              <div className="text-gray-400 text-xs">📊 ~Monthly</div>
+              <div className={`font-mono font-medium ${monthlyProjection > 200 ? 'text-red-400' : monthlyProjection > 100 ? 'text-yellow-400' : 'text-green-400'}`}>
+                {formatCost(monthlyProjection)}
+              </div>
+              <div className="text-gray-500 text-xs">${dailyAvg.toFixed(2)}/day</div>
             </div>
           </div>
 
+          {/* By Session Type */}
+          {usage.openclaw?.by_session_type && usage.openclaw.by_session_type.length > 0 && (
+            <div>
+              <div className="text-gray-400 text-xs mb-1">OpenClaw By Type</div>
+              <div className="space-y-1">
+                {usage.openclaw.by_session_type.map((s) => (
+                  <div key={s.type} className="flex justify-between items-center text-xs">
+                    <span className="text-gray-300">
+                      {s.type === 'main' ? '💬 main' : s.type === 'cron' ? '⏰ cron' : s.type === 'slack' ? '💼 slack' : `📋 ${s.type}`}
+                    </span>
+                    <div className="flex gap-2">
+                      <span className="text-gray-500">{s.calls} calls</span>
+                      <span className="text-green-400 font-mono">{formatCost(s.cost)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* By Model */}
-          {usage.by_model && usage.by_model.length > 0 && (
+          {usage.openclaw?.by_model && usage.openclaw.by_model.length > 0 && (
             <div>
               <div className="text-gray-400 text-xs mb-1">By Model</div>
               <div className="space-y-1">
-                {usage.by_model.map((m) => (
+                {usage.openclaw.by_model.filter(m => m.cost > 0).map((m) => (
                   <div key={m.model} className="flex justify-between items-center text-xs">
                     <span className="text-gray-300">{shortModel(m.model)}</span>
                     <div className="flex gap-2">
@@ -173,12 +211,32 @@ export default function CostMonitor() {
             </div>
           )}
 
-          {/* By Script */}
-          {usage.by_script && usage.by_script.length > 0 && (
+          {/* By Day */}
+          {usage.openclaw?.by_day && usage.openclaw.by_day.length > 0 && (
             <div>
-              <div className="text-gray-400 text-xs mb-1">By Script</div>
+              <div className="text-gray-400 text-xs mb-1">By Day</div>
               <div className="space-y-1">
-                {usage.by_script.map((s) => (
+                {usage.openclaw.by_day.filter(d => d.date !== 'unknown').slice(0, 7).map((d) => (
+                  <div key={d.date} className="flex justify-between items-center text-xs">
+                    <span className="text-gray-300">{d.date}</span>
+                    <div className="flex gap-2">
+                      <span className="text-gray-500">{d.calls} calls</span>
+                      <span className={`font-mono ${d.cost > 30 ? 'text-red-400' : d.cost > 10 ? 'text-yellow-400' : 'text-green-400'}`}>
+                        {formatCost(d.cost)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Top scripts */}
+          {usage.scripts?.by_script && usage.scripts.by_script.length > 0 && (
+            <div>
+              <div className="text-gray-400 text-xs mb-1">Top Scripts</div>
+              <div className="space-y-1">
+                {usage.scripts.by_script.slice(0, 5).map((s) => (
                   <div key={s.script} className="flex justify-between items-center text-xs">
                     <span className="text-gray-300 truncate max-w-[150px]">{s.script}</span>
                     <div className="flex gap-2">
@@ -188,30 +246,6 @@ export default function CostMonitor() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* By Day */}
-          {usage.by_day && usage.by_day.length > 0 && (
-            <div>
-              <div className="text-gray-400 text-xs mb-1">By Day</div>
-              <div className="space-y-1">
-                {usage.by_day.slice(0, 5).map((d) => (
-                  <div key={d.date} className="flex justify-between items-center text-xs">
-                    <span className="text-gray-300">{d.date}</span>
-                    <div className="flex gap-2">
-                      <span className="text-gray-500">{d.calls} calls</span>
-                      <span className="text-green-400 font-mono">{formatCost(d.cost)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {totalCalls === 0 && (
-            <div className="text-gray-500 text-xs text-center py-2">
-              No API usage recorded yet. Costs will appear as scripts run.
             </div>
           )}
 
