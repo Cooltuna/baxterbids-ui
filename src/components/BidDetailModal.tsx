@@ -310,6 +310,44 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
             if (cachedVendors) {
               setVendorMatrix(cachedVendors);
             }
+          } else if (bid.enrichment?.highergov?.bid_info) {
+            // Auto-build BOM from enrichment data for HigherGov bids (no AI needed)
+            const info = bid.enrichment.highergov.bid_info;
+            const formattedDeadline = bid.closeDate
+              ? new Date(bid.closeDate).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })
+              : 'Not specified';
+
+            const autoBom: BidSummary = {
+              bid_id: bid.id,
+              title: bid.title,
+              agency: bid.agency || 'DLA',
+              scope: `${info.nomenclature} - NSN: ${info.nsn}`,
+              line_items: [{
+                description: `${info.nomenclature} (NSN: ${info.nsn})`,
+                quantity: String(info.quantity || ''),
+                unit: info.unit || 'EA',
+                specifications: `Std Price: $${info.std_price?.toLocaleString() || 'N/A'}, Last Price: $${info.last_price?.toLocaleString() || 'N/A'}`
+              }],
+              requirements: ['Government procurement - standard terms apply'],
+              deadline: formattedDeadline,
+              estimated_value: info.est_value ? `$${info.est_value.toLocaleString()}` : undefined,
+              key_dates: {
+                submission_due: formattedDeadline
+              },
+              recommendations: [
+                'Check approved suppliers list for sourcing options',
+                'Review purchase history for competitive pricing'
+              ],
+              analyzed_at: new Date().toISOString()
+            };
+            setSummary(autoBom);
+            setSelectedItems(new Set([0]));
+            setIsFromCache(true);
           }
         } catch (err) {
           // Silently fail - cache loading is optional
@@ -693,15 +731,12 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
               </button>
             )}
             
-            {/* Other tabs - require summary */}
-            {(['bom', 'vendors', 'rfq'] as Tab[]).map((tab) => (
+            {/* BOM & Vendors tabs - require summary */}
+            {(['bom', 'vendors'] as Tab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => {
                   setActiveTab(tab);
-                  if (tab === 'rfq') {
-                    loadRFQs();
-                  }
                 }}
                 disabled={!summary}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
@@ -712,9 +747,22 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
               >
                 {tab === 'bom' && `📦 BOM ${summary ? `(${summary.line_items.length})` : ''}`}
                 {tab === 'vendors' && '🏢 Vendors'}
-                {tab === 'rfq' && `📝 RFQ ${sentRFQs.length > 0 ? `(${sentRFQs.length})` : ''}`}
               </button>
             ))}
+            {/* RFQ tab - always visible (doesn't require analysis) */}
+            <button
+              onClick={() => {
+                setActiveTab('rfq');
+                loadRFQs();
+              }}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                activeTab === 'rfq'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)]'
+              }`}
+            >
+              📝 RFQ {sentRFQs.length > 0 ? `(${sentRFQs.length})` : ''}
+            </button>
             {/* Quotes tab - always visible (doesn't require analysis) */}
             <button
               onClick={() => setActiveTab('quotes')}
@@ -1906,16 +1954,16 @@ QUOTED TOTAL: $${rfq.quoted_total?.toLocaleString() || 'N/A'}
                   </div>
                 )}
 
-                {!vendorMatrix && (
+                {!vendorMatrix && sentRFQs.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-[var(--muted)] mb-4">
-                      Research vendors first to send RFQs
+                      Research vendors first to send RFQs, or use suggested vendors from the BOM tab
                     </p>
                     <button
-                      onClick={() => setActiveTab('vendors')}
+                      onClick={() => setActiveTab(summary ? 'bom' : 'summary')}
                       className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg font-medium hover:bg-[var(--accent)]/90 transition-colors"
                     >
-                      Go to Vendors Tab
+                      {summary ? 'Go to BOM' : 'Go to Summary'}
                     </button>
                   </div>
                 )}
