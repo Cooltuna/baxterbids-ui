@@ -134,15 +134,22 @@ function BidActivityReport() {
 function RFQTrackerReport() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [startDate, endDate, statusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/reports/rfq-tracker`);
+      const params = new URLSearchParams();
+      if (startDate) params.set('start', startDate);
+      if (endDate) params.set('end', endDate);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const res = await fetch(`${API_BASE}/reports/rfq-tracker?${params.toString()}`);
       if (res.ok) {
         setData(await res.json());
       } else {
@@ -154,13 +161,108 @@ function RFQTrackerReport() {
     setLoading(false);
   };
 
-  if (loading) return <div className="text-[var(--muted)] p-8 text-center">Loading report...</div>;
+  const setQuickRange = (label: string) => {
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    setEndDate(fmt(now));
+    switch (label) {
+      case 'today':
+        setStartDate(fmt(now));
+        break;
+      case 'week':
+        now.setDate(now.getDate() - 7);
+        setStartDate(fmt(now));
+        break;
+      case 'month':
+        now.setDate(now.getDate() - 30);
+        setStartDate(fmt(now));
+        break;
+      case 'all':
+        setStartDate('');
+        setEndDate('');
+        break;
+    }
+  };
+
+  const exportCSV = () => {
+    if (!data?.rfqs) return;
+    const header = 'Date,Vendor Email,Subject,Items,Status,Quoted Total\n';
+    const rows = data.rfqs.map((r: any) => {
+      const items = JSON.parse(r.items_json || '[]').join('; ');
+      return [
+        r.sent_at?.slice(0, 10) || '',
+        `"${r.vendor_email || ''}"`,
+        `"${(r.subject || '').replace(/"/g, '""')}"`,
+        `"${items.replace(/"/g, '""')}"`,
+        r.status || '',
+        r.quoted_total || '',
+      ].join(',');
+    }).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RFQ_Report_${startDate || 'all'}_to_${endDate || 'now'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading && !data) return <div className="text-[var(--muted)] p-8 text-center">Loading report...</div>;
   if (data?.error) return <div className="text-[var(--muted)] p-8 text-center">{data.error}</div>;
 
   return (
     <div className="space-y-6">
-      {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-4 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
+        <div>
+          <label className="block text-xs text-[var(--muted)] mb-1">Start Date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-[var(--muted)] mb-1">End Date</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-[var(--muted)] mb-1">Status</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-sm text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          >
+            <option value="all">All</option>
+            <option value="sent">Sent</option>
+            <option value="responded">Responded</option>
+          </select>
+        </div>
+        <div className="flex gap-2">
+          {['today', 'week', 'month', 'all'].map(label => (
+            <button key={label} onClick={() => setQuickRange(label)}
+              className="px-3 py-2 rounded-lg text-sm bg-[var(--background)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-colors">
+              {label === 'all' ? 'All Time' : label === 'today' ? 'Today' : label === 'week' ? 'Last 7d' : 'Last 30d'}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={exportCSV}
+          disabled={!data?.rfqs?.length}
+          className="px-4 py-2 rounded-lg text-sm bg-[var(--accent)] text-white font-medium hover:bg-[var(--accent)]/90 disabled:opacity-50 transition-colors ml-auto"
+        >
+          ⬇️ Export CSV
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
           <p className="text-xs text-[var(--muted)]">Total RFQs</p>
           <p className="text-2xl font-bold">{data?.total || 0}</p>
@@ -177,43 +279,91 @@ function RFQTrackerReport() {
           <p className="text-xs text-[var(--accent)]">Response Rate</p>
           <p className="text-2xl font-bold text-[var(--accent)]">{data?.response_rate || '0%'}</p>
         </div>
+        <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
+          <p className="text-xs text-[var(--muted)]">Unique Vendors</p>
+          <p className="text-2xl font-bold">{data?.unique_vendors || 0}</p>
+        </div>
       </div>
 
-      {/* RFQ List */}
+      {/* By Date Breakdown */}
+      {data?.by_date && data.by_date.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">By Date</h3>
+          <div className="space-y-1">
+            {data.by_date.map((day: any) => {
+              const maxCount = Math.max(...data.by_date.map((d: any) => d.count));
+              const pct = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
+              return (
+                <div key={day.date} className="flex items-center gap-3">
+                  <span className="text-xs text-[var(--muted)] w-24 shrink-0">{day.date}</span>
+                  <div className="flex-1 h-6 bg-[var(--card)] rounded overflow-hidden">
+                    <div className="h-full rounded bg-[var(--accent)]/60" style={{ width: `${Math.max(pct, 3)}%` }} />
+                  </div>
+                  <span className="text-xs font-medium text-[var(--foreground)] w-12 text-right">{day.count} sent</span>
+                  <span className="text-xs text-[var(--success)] w-16 text-right">{day.responded} resp</span>
+                  {day.quoted_total > 0 && (
+                    <span className="text-xs font-mono text-[var(--success)] w-20 text-right">${day.quoted_total.toLocaleString()}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* RFQ Table */}
       {data?.rfqs && data.rfqs.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border)] text-left">
-                <th className="py-2 px-3 font-medium text-[var(--muted)]">Vendor</th>
-                <th className="py-2 px-3 font-medium text-[var(--muted)]">Bid</th>
-                <th className="py-2 px-3 font-medium text-[var(--muted)]">Sent</th>
-                <th className="py-2 px-3 font-medium text-[var(--muted)]">Status</th>
-                <th className="py-2 px-3 font-medium text-[var(--muted)] text-right">Quote</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.rfqs.map((rfq: any, i: number) => (
-                <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--card)]">
-                  <td className="py-2 px-3 font-medium">{rfq.vendor_name || rfq.vendor_email}</td>
-                  <td className="py-2 px-3 text-[var(--muted)] truncate max-w-[200px]">{rfq.subject}</td>
-                  <td className="py-2 px-3 text-[var(--muted)]">{new Date(rfq.sent_at).toLocaleDateString()}</td>
-                  <td className="py-2 px-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      rfq.status === 'responded' ? 'bg-[var(--success)]/20 text-[var(--success)]' :
-                      rfq.status === 'sent' ? 'bg-[var(--warning)]/20 text-[var(--warning)]' :
-                      'bg-[var(--muted)]/20 text-[var(--muted)]'
-                    }`}>
-                      {rfq.status}
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-[var(--success)]">
-                    {rfq.quoted_total ? `$${rfq.quoted_total.toLocaleString()}` : '—'}
-                  </td>
+        <div>
+          <h3 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wider mb-3">
+            RFQ Details ({data.rfqs.length})
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[var(--card)] border-b border-[var(--border)] text-left">
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Date</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Vendor</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Subject</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Items</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Status</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)] text-right">Quote</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.rfqs.map((rfq: any, i: number) => {
+                  const items = JSON.parse(rfq.items_json || '[]');
+                  return (
+                    <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--card)]/50">
+                      <td className="py-2 px-4 text-[var(--muted)] whitespace-nowrap">
+                        {rfq.sent_at ? new Date(rfq.sent_at + 'Z').toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                      </td>
+                      <td className="py-2 px-4 font-medium text-[var(--foreground)]">{rfq.vendor_email || '—'}</td>
+                      <td className="py-2 px-4 text-[var(--muted)] max-w-[250px] truncate">{rfq.subject}</td>
+                      <td className="py-2 px-4 text-[var(--muted)]">{items.length}</td>
+                      <td className="py-2 px-4">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          rfq.status === 'responded' ? 'bg-[var(--success)]/20 text-[var(--success)]' :
+                          rfq.status === 'sent' ? 'bg-[var(--warning)]/20 text-[var(--warning)]' :
+                          'bg-[var(--muted)]/20 text-[var(--muted)]'
+                        }`}>
+                          {rfq.status}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4 text-right font-mono text-[var(--success)]">
+                        {rfq.quoted_total ? `$${rfq.quoted_total.toLocaleString()}` : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {data?.rfqs?.length === 0 && (
+        <div className="text-center py-12 text-[var(--muted)]">
+          No RFQs found for the selected date range.
         </div>
       )}
     </div>
