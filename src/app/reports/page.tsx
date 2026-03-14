@@ -186,12 +186,13 @@ function RFQTrackerReport() {
 
   const exportCSV = () => {
     if (!data?.rfqs) return;
-    const header = 'Date,Vendor Email,Subject,Items,Status,Quoted Total\n';
+    const header = 'Date,Vendor Name,Vendor Email,Subject,Items,Status,Quoted Total\n';
     const rows = data.rfqs.map((r: any) => {
       const items = JSON.parse(r.items_json || '[]').join('; ');
       return [
         r.sent_at?.slice(0, 10) || '',
-        `"${r.vendor_email || ''}"`,
+        `"${r.vendor_name || ''}"`,
+        `"${r.vendor_actual_email || r.vendor_email || ''}"`,
         `"${(r.subject || '').replace(/"/g, '""')}"`,
         `"${items.replace(/"/g, '""')}"`,
         r.status || '',
@@ -323,6 +324,7 @@ function RFQTrackerReport() {
                 <tr className="bg-[var(--card)] border-b border-[var(--border)] text-left">
                   <th className="py-3 px-4 font-medium text-[var(--muted)]">Date</th>
                   <th className="py-3 px-4 font-medium text-[var(--muted)]">Vendor</th>
+                  <th className="py-3 px-4 font-medium text-[var(--muted)]">Vendor Email</th>
                   <th className="py-3 px-4 font-medium text-[var(--muted)]">Subject</th>
                   <th className="py-3 px-4 font-medium text-[var(--muted)]">Items</th>
                   <th className="py-3 px-4 font-medium text-[var(--muted)]">Status</th>
@@ -337,7 +339,8 @@ function RFQTrackerReport() {
                       <td className="py-2 px-4 text-[var(--muted)] whitespace-nowrap">
                         {rfq.sent_at ? new Date(rfq.sent_at + 'Z').toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
                       </td>
-                      <td className="py-2 px-4 font-medium text-[var(--foreground)]">{rfq.vendor_email || '—'}</td>
+                      <td className="py-2 px-4 font-medium text-[var(--foreground)]">{rfq.vendor_name || '—'}</td>
+                      <td className="py-2 px-4 text-[var(--muted)]">{rfq.vendor_actual_email || rfq.vendor_email || '—'}</td>
                       <td className="py-2 px-4 text-[var(--muted)] max-w-[250px] truncate">{rfq.subject}</td>
                       <td className="py-2 px-4 text-[var(--muted)]">{items.length}</td>
                       <td className="py-2 px-4">
